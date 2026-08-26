@@ -51,8 +51,3 @@ export class Logger {
     }
   }
 }
-
-/** Shared redaction applied across the CLI. */
-export function redactAll(text: string): string {
-  return text;
-}

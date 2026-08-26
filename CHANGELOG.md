@@ -26,6 +26,19 @@ First reviewable milestone.
 - Overlay validation now requires root identity match and non-empty
   approximation entries.
 
+### Fixed (final review pass)
+- Token redaction is now wired into the shared CLI logger (previously the
+  logger printed raw text); the fallback pattern no longer masks our own
+  SCREAMING_SNAKE_CASE error codes, and regression tests cover both.
+- `doctor` never prints even a masked token prefix/suffix anymore; presence
+  is reported as text only.
+- `CliError` output no longer double-prefixes the code (`CODE: CODE: ...`).
+- pack-guard requires `schemas/project-config-local.schema.json` so the local
+  override contract cannot silently disappear from the tarball.
+- The Unity menu entrypoint no longer calls `EditorApplication.Exit` outside
+  batch mode (it used to close the editor); batch behavior is unchanged.
+- Removed dead `makeRedactor` / `redactAll`; added `downloadBytes` retry tests.
+
 ### Validated
 - `npm run check` green (65 tests).
 - Real Unity compile: embedded UPM installed into an isolated Unity

@@ -28,6 +28,16 @@ describe("token redaction", () => {
     const errorText = redactor.redact("Error reading config with token leakme-9876543210");
     expect(errorText).not.toContain("9876543210");
   });
+
+  it("keeps SCREAMING_SNAKE_CASE error codes readable while masking token-like strings", () => {
+    const redactor = new Redactor();
+    const code = "EXP_IDENTIFIER_TRANSLATION_MISSING";
+    const out = redactor.redact(`${code}: Figma layer is missing an English translation.`);
+    expect(out).toContain(code);
+
+    const masked = redactor.redact("figd_aaaabbbbccccdddd0000111122223333");
+    expect(masked).not.toContain("aaaabbbbccccdddd");
+  });
 });
 
 describe("path safety", () => {

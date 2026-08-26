@@ -50,7 +50,7 @@ export async function doctorCommand(options: { projectPath?: string; configPath?
       configValid: false,
       stagingExists,
       tokenPresent: Boolean(token),
-      tokenMasked: token ? maskToken(token) : undefined,
+      tokenMasked: token ? "[REDACTED]" : undefined,
       unity: { editorExists: false, packageInstalled: false, packageModified: false, running: false, runningQueryFailed: false },
       checks,
     };
@@ -71,7 +71,7 @@ export async function doctorCommand(options: { projectPath?: string; configPath?
       configValid: false,
       stagingExists,
       tokenPresent: Boolean(token),
-      tokenMasked: token ? maskToken(token) : undefined,
+      tokenMasked: token ? "[REDACTED]" : undefined,
       unity: { editorExists: false, packageInstalled: false, packageModified: false, running: false, runningQueryFailed: false },
       checks,
     };
@@ -129,7 +129,7 @@ export async function doctorCommand(options: { projectPath?: string; configPath?
     stagingRoot,
     stagingExists,
     tokenPresent: Boolean(token),
-    tokenMasked: token ? maskToken(token) : undefined,
+    tokenMasked: token ? "[REDACTED]" : undefined,
     unity,
     checks,
   };

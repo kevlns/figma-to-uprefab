@@ -6,7 +6,6 @@
 import { readConfig, resolveToken } from "../core/config.js";
 import { errors } from "../core/errors.js";
 import { FigmaTransport } from "../core/http.js";
-import { Redactor } from "../core/redact.js";
 import { runExport, type ExportOptions } from "../figma/export.js";
 
 export interface ExportCommandOptions {
@@ -64,15 +63,4 @@ export async function exportCommand(options: ExportCommandOptions): Promise<{
     warnings: result.warnings,
     writtenFiles: result.writtenFiles,
   };
-}
-
-export function makeRedactor(extraSecrets: string[] = []): Redactor {
-  const redactor = new Redactor();
-  const token = process.env.FIGMA_ACCESS_TOKEN;
-  redactor.addSecret(token);
-  for (const secret of extraSecrets) {
-    redactor.addSecret(secret);
-  }
-
-  return redactor;
 }

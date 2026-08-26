@@ -32,6 +32,12 @@ export class Redactor {
         return match;
       }
 
+      // SCREAMING_SNAKE_CASE tokens are our own stable error codes
+      // (e.g. EXP_IDENTIFIER_TRANSLATION_MISSING), never Figma credentials.
+      if (/^[A-Z0-9_]+$/.test(match)) {
+        return match;
+      }
+
       // Skip masking if it is clearly a file path or a known-safe word.
       if (match.startsWith("C:") || match.startsWith("/") || match.endsWith(".json")) {
         return match;

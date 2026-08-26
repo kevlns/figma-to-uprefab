@@ -1,0 +1,50 @@
+{
+  "id": "10:1",
+  "name": "[root:rcg][name=LayoutPanel]",
+  "type": "FRAME",
+  "visible": true,
+  "absoluteBoundingBox": { "x": 0, "y": 0, "width": 320, "height": 200 },
+  "layoutMode": "HORIZONTAL",
+  "itemSpacing": 12,
+  "paddingTop": 8,
+  "paddingRight": 8,
+  "paddingBottom": 8,
+  "paddingLeft": 8,
+  "primaryAxisAlignItems": "SPACE_BETWEEN",
+  "counterAxisAlignItems": "CENTER",
+  "layoutWrap": "WRAP",
+  "layoutSizingHorizontal": "FIXED",
+  "layoutSizingVertical": "HUG",
+  "children": [
+    {
+      "id": "10:2",
+      "name": "[node:button][name=Button]",
+      "type": "FRAME",
+      "visible": true,
+      "absoluteBoundingBox": { "x": 8, "y": 8, "width": 80, "height": 40 },
+      "constraints": { "horizontal": "MAX", "vertical": "TOP_BOTTOM" },
+      "layoutPositioning": "ABSOLUTE",
+      "layoutSizingHorizontal": "FIXED",
+      "layoutSizingVertical": "FILL"
+    },
+    {
+      "id": "10:3",
+      "name": "[node:image][name=Icon]",
+      "type": "FRAME",
+      "visible": true,
+      "absoluteBoundingBox": { "x": 100, "y": 8, "width": 24, "height": 24 }
+    },
+    {
+      "id": "10:4",
+      "name": "Background",
+      "type": "RECTANGLE",
+      "visible": true,
+      "absoluteBoundingBox": { "x": 0, "y": 0, "width": 320, "height": 200 },
+      "constraints": { "horizontal": "SCALE", "vertical": "SCALE" },
+      "layoutAlign": "INHERIT",
+      "layoutGrow": 0,
+      "layoutSizingHorizontal": "FIXED",
+      "layoutSizingVertical": "FIXED"
+    }
+  ]
+}

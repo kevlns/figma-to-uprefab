@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kevlns/figma-to-uprefab/schemas/approximation-overlay.schema.json",
+  "title": "figma-to-uprefab approximation overlay",
+  "description": "Optional Meta/<name>.approximation.json. Independent from the source manifest; only whitelisted approximation fields; every entry requires a reason. The C# converter merges entries into IR.layout.approximation and never mutates the source manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "root", "entries"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "root": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["figmaNodeId", "prefabName"],
+      "properties": {
+        "figmaNodeId": { "type": "string", "minLength": 1 },
+        "prefabName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/entry" }
+    }
+  },
+  "definitions": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["figmaNodeId", "approximation", "reason"],
+      "properties": {
+        "figmaNodeId": { "type": "string", "minLength": 1 },
+        "approximation": { "$ref": "#/definitions/approximation" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "approximation": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "Whitelist of approximation fields the converter may apply.",
+      "properties": {
+        "horizontalConstraint": { "enum": ["min", "center", "max", "stretch", "scale"] },
+        "verticalConstraint": { "enum": ["min", "center", "max", "stretch", "scale"] },
+        "positioning": { "enum": ["auto", "absolute"] },
+        "align": { "enum": ["inherit", "stretch", "min", "center", "max", "baseline"] },
+        "widthSizing": { "enum": ["fixed", "hug", "fill"] },
+        "heightSizing": { "enum": ["fixed", "hug", "fill"] },
+        "direction": { "enum": ["horizontal", "vertical"] },
+        "primaryAlign": { "enum": ["min", "center", "max", "space_between"] },
+        "counterAlign": { "enum": ["min", "center", "max", "baseline"] },
+        "spacing": { "type": "number" },
+        "padding": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "spaceBetween": { "type": "boolean" }
+      }
+    }
+  }
+}

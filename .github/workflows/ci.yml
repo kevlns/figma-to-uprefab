@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: build-lint-test-pack
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm audit --omit=dev
+      - name: Verify no credentials or tgz in worktree
+        shell: pwsh
+        run: |
+          $bad = Get-ChildItem -Recurse -Force | Where-Object {
+            $_.FullName -notlike '*\node_modules\*' -and $_.FullName -notlike '*\.git\*' -and
+            ($_.Name -like '*.tgz' -or $_.Name -like '*.local.json' -or $_.Name -like 'nul')
+          }
+          if ($bad) { $bad.FullName; throw 'forbidden artifacts present' }
+          $leak = Get-ChildItem -Recurse -Force -File | Where-Object {
+            $_.FullName -notlike '*\node_modules\*' -and $_.FullName -notlike '*\.git\*' -and
+            $_.Name -notlike '*.lock' -and (Select-String -Path $_.FullName -Pattern 'X-Figma-Token' -Quiet)
+          }
+          if ($leak) { $leak.FullName; throw 'possible token leakage' }

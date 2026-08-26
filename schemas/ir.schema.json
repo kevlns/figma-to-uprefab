@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kevlns/figma-to-uprefab/schemas/ir.schema.json",
+  "title": "figma-to-uprefab intermediate representation",
+  "description": "IR produced ONLY by the C# converter (source manifest + overlay -> IR). Node never produces IR.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["prefab", "assets", "tree"],
+  "properties": {
+    "prefab": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "variantFrom", "stagingPath"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "variantFrom": { "type": "string", "minLength": 1 },
+        "stagingPath": { "type": "string", "minLength": 1 },
+        "domain": { "type": "string" },
+        "figma": {
+          "type": "object",
+          "properties": {
+            "fileKey": { "type": "string" },
+            "frameNodeId": { "type": "string" },
+            "frameName": { "type": "string" }
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["key", "format", "figmaNodeId", "exportMode", "destPath"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1 },
+          "format": { "enum": ["png"] },
+          "figmaNodeId": { "type": "string" },
+          "exportMode": { "enum": ["node"] },
+          "sharedAsset": { "type": "boolean" },
+          "sourceAssetNodeId": { "type": "string" },
+          "destPath": { "type": "string" },
+          "import": { "type": "object" }
+        }
+      }
+    },
+    "tree": { "$ref": "#/definitions/node" }
+  },
+  "definitions": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "tags", "visible", "layout"],
+      "properties": {
+        "name": { "type": "string" },
+        "key": { "type": "string" },
+        "tags": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["node", "components"],
+          "properties": {
+            "node": { "enum": ["root", "node", "note"] },
+            "components": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "rcg": {
+          "type": "object",
+          "properties": {
+            "namespaceName": { "type": "string" },
+            "skinName": { "type": "string" },
+            "generatePath": { "type": "string" }
+          }
+        },
+        "figmaNodeId": { "type": "string" },
+        "figmaName": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "configuredPrefabPath": { "type": "string" },
+        "configuredComponentTypeNames": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "layout": { "$ref": "#/definitions/layout" },
+        "components": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "type", "typeName"],
+            "properties": {
+              "key": { "type": "string" },
+              "type": { "type": "string" },
+              "typeName": { "type": "string" }
+            }
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/node" }
+        }
+      }
+    },
+    "rect": {
+      "type": "object",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number" },
+        "h": { "type": "number" }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["constraints", "positioning", "align", "grow", "sizing"],
+      "properties": {
+        "rect": { "$ref": "#/definitions/rect" },
+        "constraints": {
+          "type": "object",
+          "required": ["horizontal", "vertical"],
+          "properties": {
+            "horizontal": { "type": "string" },
+            "vertical": { "type": "string" }
+          }
+        },
+        "positioning": { "type": "string" },
+        "align": { "type": "string" },
+        "grow": { "type": "number" },
+        "sizing": {
+          "type": "object",
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "string" },
+            "height": { "type": "string" }
+          }
+        },
+        "autoLayout": {
+          "type": "object",
+          "properties": {
+            "direction": { "type": "string" },
+            "spacing": { "type": "number" },
+            "padding": { "type": "array", "items": { "type": "number" } },
+            "primaryAlign": { "type": "string" },
+            "counterAlign": { "type": "string" },
+            "wrap": { "type": "string" }
+          }
+        },
+        "approximation": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Merged from the approximation overlay by the C# converter.",
+          "properties": {
+            "horizontalConstraint": { "type": "string" },
+            "verticalConstraint": { "type": "string" },
+            "positioning": { "type": "string" },
+            "align": { "type": "string" },
+            "widthSizing": { "type": "string" },
+            "heightSizing": { "type": "string" },
+            "direction": { "type": "string" },
+            "primaryAlign": { "type": "string" },
+            "counterAlign": { "type": "string" },
+            "spacing": { "type": "number" },
+            "padding": { "type": "array", "items": { "type": "number" } },
+            "spaceBetween": { "type": "boolean" },
+            "reason": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

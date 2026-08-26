@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 1,
+  "package": "@kevlns/figma-to-uprefab",
+  "command": "figma",
+  "bin": "figma-to-uprefab",
+  "description": "Figma REST -> staging-only Unity UGUI prefabs. Node orchestrates export/contract/install/build; the embedded Unity Editor package (source manifest + approximation overlay -> IR -> Prefab) is the only source->IR converter.",
+  "platforms": ["win32"],
+  "runtime": {
+    "node": ">=20",
+    "os": "win32"
+  },
+  "environment": [
+    {
+      "name": "FIGMA_ACCESS_TOKEN",
+      "description": "Primary Figma token source (file_content:read). Never stored in tracked config; always redacted in logs."
+    },
+    {
+      "name": "ProgramFiles / LOCALAPPDATA",
+      "description": "Used to discover the Unity Editor via Unity Hub (Editor/<version>/Editor/Unity.exe) when unity.editorPath is not set."
+    }
+  ],
+  "agent": {
+    "whenToUse": "Use to convert tagged Figma frames into staging-only Unity UGUI prefabs: export source manifests + node PNGs, validate the staging contract, install the embedded Unity converter package, or run the C# converter in Unity batch. Never use for promoting generated assets into runtime paths or writing UIConfig.",
+    "globalOptions": [
+      {
+        "flags": "-V, --version",
+        "description": "output the version number"
+      },
+      {
+        "flags": "-h, --help",
+        "description": "display help for command"
+      }
+    ],
+    "commands": [
+      {
+        "path": ["setup"],
+        "usage": "figma-to-uprefab setup <project> [options]",
+        "description": "Write the tracked figma-to-uprefab.json into a Unity project (modifies the project).",
+        "arguments": [
+          {
+            "name": "project",
+            "required": true,
+            "description": "Path to the Unity project."
+          }
+        ],
+        "options": [
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          },
+          {
+            "flags": "-f, --force",
+            "description": "overwrite an existing tracked config"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Path of the tracked config created."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error"
+        },
+        "safety": [
+          "writes only the tracked config file; never touches Unity assets"
+        ]
+      },
+      {
+        "path": ["config", "validate"],
+        "usage": "figma-to-uprefab config validate [options]",
+        "description": "Validate the tracked config against project-config schema and reject token smuggling in the local overlay.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Config validity + first failing JSON path on error."
+        },
+        "exitCodes": {
+          "0": "valid",
+          "1": "invalid"
+        },
+        "safety": [
+          "read-only",
+          "never prints a token"
+        ]
+      },
+      {
+        "path": ["export"],
+        "usage": "figma-to-uprefab export <fileKey> [options]",
+        "description": "Figma REST -> source manifests + node-scoped PNGs + root index under staging. No Unity side effects.",
+        "arguments": [
+          {
+            "name": "fileKey",
+            "required": true,
+            "description": "Figma file key."
+          }
+        ],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          },
+          {
+            "flags": "--discovery-document <path>",
+            "description": "test hook: captured GET /v1/files/:key payload"
+          },
+          {
+            "flags": "--node-documents <dir>",
+            "description": "test hook: read node documents from <safe-id>.json files"
+          },
+          {
+            "flags": "--discovery-only",
+            "description": "discover roots without fetching node docs or images"
+          },
+          {
+            "flags": "--image-scale <n>",
+            "description": "image export scale (0.01..4.0)"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Discovered root count + staging root index path."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error (token missing, REST failure, discovery violation)"
+        },
+        "safety": [
+          "writes only under the configured _Staging root",
+          "token never logged, never written into manifests",
+          "timeout + bounded 429/5xx retry; atomic file publish; path-traversal rejection"
+        ]
+      },
+      {
+        "path": ["contract"],
+        "usage": "figma-to-uprefab contract [options]",
+        "description": "Validate the canonical staging layout against schemas + path invariants. Read-only.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          },
+          {
+            "flags": "--index <path>",
+            "description": "override root index path"
+          },
+          {
+            "flags": "--allow-missing-ir",
+            "description": "report missing IR as warning instead of error"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Contract validity + issue list (CON_* codes)."
+        },
+        "exitCodes": {
+          "0": "valid",
+          "1": "invalid"
+        },
+        "safety": [
+          "read-only; no Unity side effects"
+        ]
+      },
+      {
+        "path": ["doctor"],
+        "usage": "figma-to-uprefab doctor [options]",
+        "description": "Read-only diagnostics of config, staging, Unity install, editor, and token presence.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Per-check [ok]/[FAIL] lines with token presence (masked only)."
+        },
+        "exitCodes": {
+          "0": "all checks ok",
+          "1": "at least one check failed"
+        },
+        "safety": [
+          "read-only",
+          "masks the token; never prints it"
+        ]
+      },
+      {
+        "path": ["agent", "docs"],
+        "usage": "figma-to-uprefab agent docs [options]",
+        "description": "Print or export the canonical AGENTS.md agent spec. Does not install skills.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "-o, --out <path>",
+            "description": "write docs to a file instead of stdout"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "AGENTS.md content or written path."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error"
+        },
+        "safety": [
+          "no skills installed; documentation only"
+        ]
+      },
+      {
+        "path": ["unity", "install"],
+        "usage": "figma-to-uprefab unity install [options]",
+        "description": "Install the embedded com.kevlns.figma-to-uprefab UPM package into the project. Explicit, dry-run, hash receipt, modification detection, atomic with rollback.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          },
+          {
+            "flags": "--dry-run",
+            "description": "validate + preview without writing"
+          },
+          {
+            "flags": "-f, --force",
+            "description": "override modification detection / overwrite existing"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Status, package dir, file count, receipt path."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error (modified package without --force, invalid project)"
+        },
+        "safety": [
+          "writes only <project>/Packages/com.kevlns.figma-to-uprefab + Library/figma-to-uprefab receipt",
+          "receipt records exact tree hashes; modification fails closed",
+          "staged temp + rename; previous install backed up and restored on failure"
+        ]
+      },
+      {
+        "path": ["unity", "status"],
+        "usage": "figma-to-uprefab unity status [options]",
+        "description": "Report whether the embedded package is installed and whether it was modified since its receipt.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "installed/modified booleans + package path."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error"
+        },
+        "safety": [
+          "read-only"
+        ]
+      },
+      {
+        "path": ["unity", "uninstall"],
+        "usage": "figma-to-uprefab unity uninstall [options]",
+        "description": "Remove the embedded package. Refuses (fail-closed) if the installed tree was modified unless --force.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          },
+          {
+            "flags": "--dry-run",
+            "description": "preview without writing"
+          },
+          {
+            "flags": "-f, --force",
+            "description": "remove a modified install"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Uninstall status (Uninstalled | NotInstalled | DryRun | ModifiedRejected)."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error / ModifiedRejected"
+        },
+        "safety": [
+          "fail-closed on modified install without --force"
+        ]
+      },
+      {
+        "path": ["build"],
+        "usage": "figma-to-uprefab build [options]",
+        "description": "Run the C# converter in Unity batch mode (request/report protocol). Fails closed when the package is not installed, the receipt is missing, or Unity is running.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit tracked config path"
+          },
+          {
+            "flags": "--index <path>",
+            "description": "override root index path"
+          },
+          {
+            "flags": "--allow-running-editor",
+            "description": "proceed even if Unity is running"
+          }
+        ],
+        "output": {
+          "format": "json",
+          "description": "Build report: per-root errorCode/errorMessage, conversion, build summary. Report path printed."
+        },
+        "exitCodes": {
+          "0": "all roots built",
+          "1": "error (missing install/receipt, Unity running, or any root failed)"
+        },
+        "safety": [
+          "writes only Library/figma-to-uprefab/request.json + report.json and staging outputs",
+          "never fabricates a compile result; outcome comes from Unity exit code + report JSON"
+        ]
+      }
+    ]
+  }
+}

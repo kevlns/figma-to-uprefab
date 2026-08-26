@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.tgz
+*.log
+nul
+.DS_Store
+# Optional per-user / per-machine overrides; never tracked.
+figma-to-uprefab.local.json
+*.local.json
+# Never commit real credentials.
+.env
+.env.*
+!*.example

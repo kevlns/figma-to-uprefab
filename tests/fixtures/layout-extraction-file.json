@@ -1,0 +1,21 @@
+{
+  "document": {
+    "id": "0:0",
+    "type": "DOCUMENT",
+    "children": [
+      {
+        "id": "0:1",
+        "type": "CANVAS",
+        "name": "Page",
+        "children": [
+          {
+            "id": "10:1",
+            "type": "FRAME",
+            "name": "[root:rcg][name=LayoutPanel]",
+            "visible": true
+          }
+        ]
+      }
+    ]
+  }
+}

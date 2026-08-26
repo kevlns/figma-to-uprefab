@@ -1,0 +1,50 @@
+{
+  "document": {
+    "id": "0:0",
+    "name": "Document",
+    "type": "DOCUMENT",
+    "children": [
+      {
+        "id": "1:1",
+        "name": "Shop",
+        "type": "CANVAS",
+        "children": [
+          {
+            "id": "2:1",
+            "name": "[root:rcg][name=月卡详情]",
+            "type": "FRAME",
+            "visible": true,
+            "children": [
+              {
+                "id": "2:2",
+                "name": "[node:text][name=Price]",
+                "type": "TEXT",
+                "absoluteBoundingBox": { "x": 0, "y": 0, "width": 10, "height": 10 }
+              }
+            ]
+          },
+          {
+            "id": "2:3",
+            "name": "[root][name=PurchasePanel]",
+            "type": "FRAME",
+            "visible": false,
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "1:2",
+        "name": "Profile",
+        "type": "CANVAS",
+        "children": [
+          {
+            "id": "3:1",
+            "name": "[root][name=ProfilePanel]",
+            "type": "FRAME",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

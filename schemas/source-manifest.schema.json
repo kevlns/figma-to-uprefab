@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kevlns/figma-to-uprefab/schemas/source-manifest.schema.json",
+  "title": "figma-to-uprefab source manifest",
+  "description": "Canonical raw Figma extraction document (Meta/<name>.source.json). Overlays never rewrite this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["prefab", "source", "identifierTranslations", "nodes", "assets"],
+  "properties": {
+    "prefab": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "variantFrom", "stagingPath"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "variantFrom": { "type": "string", "minLength": 1 },
+        "stagingPath": { "type": "string", "minLength": 1 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fileKey", "frameNodeId", "frameName"],
+      "properties": {
+        "fileKey": { "type": "string", "minLength": 1 },
+        "frameNodeId": { "type": "string", "minLength": 1 },
+        "frameName": { "type": "string" }
+      }
+    },
+    "identifierTranslations": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/node" }
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/asset" }
+    }
+  },
+  "definitions": {
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number" },
+        "h": { "type": "number" }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["horizontal", "vertical"],
+      "properties": {
+        "horizontal": { "type": "string" },
+        "vertical": { "type": "string" }
+      }
+    },
+    "autoLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["direction", "spacing", "padding", "primaryAlign", "counterAlign", "wrap"],
+      "properties": {
+        "direction": { "enum": ["horizontal", "vertical", "grid"] },
+        "spacing": { "type": "number" },
+        "padding": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "primaryAlign": { "type": "string" },
+        "counterAlign": { "type": "string" },
+        "wrap": { "type": "string" }
+      }
+    },
+    "sizing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "enum": ["fixed", "hug", "fill"] },
+        "height": { "enum": ["fixed", "hug", "fill"] }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["constraints", "positioning", "align", "grow", "sizing"],
+      "properties": {
+        "rect": { "$ref": "#/definitions/rect" },
+        "constraints": { "$ref": "#/definitions/constraints" },
+        "positioning": { "enum": ["auto", "absolute"] },
+        "align": { "enum": ["inherit", "stretch", "min", "center", "max", "baseline"] },
+        "grow": { "type": "number" },
+        "autoLayout": { "$ref": "#/definitions/autoLayout" },
+        "sizing": { "$ref": "#/definitions/sizing" }
+      }
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["content", "fontSize", "rotation"],
+      "properties": {
+        "content": { "type": "string" },
+        "fontSize": { "type": "number" },
+        "rotation": { "type": "number" },
+        "horizontalAlignment": { "type": "string" },
+        "verticalAlignment": { "type": "string" },
+        "lineHeight": { "type": "number" },
+        "letterSpacing": { "type": "number" },
+        "color": { "type": "string" }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["figmaNodeId", "figmaName", "parentFigmaNodeId", "visible", "type", "layout"],
+      "properties": {
+        "figmaNodeId": { "type": "string", "minLength": 1 },
+        "figmaName": { "type": "string" },
+        "parentFigmaNodeId": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "type": { "type": "string" },
+        "layout": { "$ref": "#/definitions/layout" },
+        "text": { "$ref": "#/definitions/text" }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "format", "figmaNodeId", "exportMode", "destPath", "import"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "format": { "enum": ["png"] },
+        "figmaNodeId": { "type": "string", "minLength": 1 },
+        "exportMode": { "const": "node" },
+        "sharedAsset": { "type": "boolean" },
+        "sourceAssetNodeId": { "type": "string" },
+        "destPath": { "type": "string", "minLength": 1 },
+        "import": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["textureType"],
+          "properties": {
+            "textureType": { "enum": ["Sprite"] }
+          }
+        }
+      }
+    }
+  }
+}

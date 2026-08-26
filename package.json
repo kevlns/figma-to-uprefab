@@ -1,0 +1,78 @@
+{
+  "name": "@kevlns/figma-to-uprefab",
+  "version": "0.1.0",
+  "description": "Figma REST -> staging-only Unity UGUI prefabs. Node orchestrates export/contract/install/build; the embedded Unity Editor package (source manifest + approximation overlay -> IR -> Prefab) is the only source->IR converter.",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "bin": {
+    "figma-to-uprefab": "dist/cli.mjs"
+  },
+  "vCli": {
+    "manifest": "v-cli.plugin.json"
+  },
+  "main": "./dist/index.mjs",
+  "files": [
+    "dist",
+    "schemas",
+    "unity-package",
+    "v-cli.plugin.json",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "docs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevlns/figma-to-uprefab.git"
+  },
+  "homepage": "https://github.com/kevlns/figma-to-uprefab#readme",
+  "bugs": {
+    "url": "https://github.com/kevlns/figma-to-uprefab/issues"
+  },
+  "author": {
+    "name": "kevlns",
+    "email": "936277610@qq.com"
+  },
+  "keywords": [
+    "figma",
+    "unity",
+    "ugui",
+    "prefab",
+    "cli",
+    "upm"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests scripts --max-warnings=0",
+    "pack:guard": "node scripts/pack-guard.mjs",
+    "test:package": "node scripts/test-package-install.mjs",
+    "check:unity-compile": "node scripts/check-unity-compile.mjs",
+    "check": "npm run build && npm run typecheck && npm test && npm run lint && npm run pack:guard"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^20.14.0",
+    "eslint": "^9.17.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^4.1.10"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true
+  }
+}

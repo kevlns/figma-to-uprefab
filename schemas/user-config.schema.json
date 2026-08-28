@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kevlns/figma-to-uprefab/schemas/user-config.schema.json",
+  "title": "figma-to-uprefab user config",
+  "description": "Single user-level config (~/.config/figma-to-uprefab/config.json, overridable via FIGMA_TO_UPREFAB_CONFIG). Per-project sections keyed by normalized absolute project path. The Figma access token may live here per project (or in FIGMA_ACCESS_TOKEN); it must never be stored in tracked repo files.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "projects"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "projects": {
+      "type": "object",
+      "description": "Map of normalized project path -> project section.",
+      "additionalProperties": { "$ref": "#/definitions/projectSection" }
+    }
+  },
+  "definitions": {
+    "projectSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "figmaAccessToken": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional per-project Figma token. FIGMA_ACCESS_TOKEN takes precedence."
+        },
+        "uiSystem": {
+          "enum": ["UGUI", "NGUI"],
+          "description": "Target UI system. Only UGUI is supported in this milestone; NGUI fails closed."
+        },
+        "baseUiPrefab": { "type": "string", "pattern": "^Assets/.+\\.prefab$" },
+        "textPrefab": { "type": "string", "pattern": "^Assets/.+\\.prefab$" },
+        "specialListPrefab": { "type": "string", "pattern": "^Assets/.+\\.prefab$" },
+        "specialGridPrefab": { "type": "string", "pattern": "^Assets/.+\\.prefab$" },
+        "formalPrefabRoot": { "type": "string", "pattern": "^Assets/.+" },
+        "formalSpriteRoot": { "type": "string", "pattern": "^Assets/.+" },
+        "staging": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "root": {
+              "type": "string",
+              "pattern": "^Assets/(?:.*/)?_Staging(?:/.*)?$",
+              "description": "Project-relative staging root inside an Assets/**/_Staging directory."
+            }
+          }
+        },
+        "unity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "editorPath": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional local Unity Editor executable override (machine-specific values belong here, not in the repo)."
+            }
+          }
+        },
+        "tagMappings": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/tagMapping" }
+        },
+        "translations": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "tagMapping": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "unityType"],
+          "properties": {
+            "kind": { "const": "component" },
+            "unityType": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "prefabPath"],
+          "properties": {
+            "kind": { "const": "prefab" },
+            "prefabPath": { "type": "string", "pattern": "^Assets/.+\\.prefab$" }
+          }
+        }
+      ]
+    }
+  }
+}

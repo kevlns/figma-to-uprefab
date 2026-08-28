@@ -16,9 +16,23 @@ export { validateSchema, type SchemaName } from "./core/schema.js";
 export {
   readConfig,
   resolveToken,
-  defaultConfig,
-  type ProjectConfig,
+  resolveTokenDetailed,
+  collectUserConfigSecrets,
+  loadUserConfig,
+  writeUserConfig,
+  userConfigPath,
+  normalizeProjectKey,
+  legacyConfigPaths,
+  defaultProjectSegment,
+  type UserConfig,
+  type UserProjectConfig,
   type ResolvedConfig,
+  type TagMapping,
+  DEFAULT_TEXT_PREFAB,
+  DEFAULT_SPECIAL_LIST_PREFAB,
+  DEFAULT_SPECIAL_GRID_PREFAB,
+  DEFAULT_FORMAL_PREFAB_ROOT,
+  DEFAULT_FORMAL_SPRITE_ROOT,
 } from "./core/config.js";
 export { FigmaTransport, chunk, type FigmaTransportOptions } from "./core/http.js";
 export { discoverRoots, convertToIdentifier, testRootTag } from "./figma/discovery.js";
@@ -50,7 +64,7 @@ export {
 } from "./core/installer.js";
 export { sha256Tree, compareTree, sha256File } from "./core/integrity.js";
 export { invokeUnityBatch, resolveEditorPath, unityStatus } from "./core/unity.js";
-export { orchestrateBuild, writeBuildRequest, readBuildReport } from "./core/build.js";
+export { orchestrateBuild, writeBuildRequest, readBuildReport, writeResolvedConfigForBuild, type ResolvedBuildConfig } from "./core/build.js";
 export { doctorCommand } from "./commands/doctor.js";
 export { contractCommand } from "./commands/contract.js";
 export { exportCommand } from "./commands/export.js";

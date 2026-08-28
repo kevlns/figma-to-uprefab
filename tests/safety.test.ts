@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Redactor, maskToken } from "../src/core/redact.js";
 import { assertInsideBase, safeJoin, atomicWriteFile, toAssetPath } from "../src/core/atomic.js";
+import { collectUserConfigSecrets } from "../src/core/config.js";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -65,6 +66,36 @@ describe("atomic write", () => {
       atomicWriteFile(target, JSON.stringify({ a: 1 }));
       expect(JSON.parse(readFileSync(target, "utf8"))).toEqual({ a: 1 });
     } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("collectUserConfigSecrets", () => {
+  it("returns every project section token and [] on a malformed file", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ftu-secrets-"));
+    const configPath = join(dir, "config.json");
+    const previous = process.env.FIGMA_TO_UPREFAB_CONFIG;
+    process.env.FIGMA_TO_UPREFAB_CONFIG = configPath;
+    try {
+      atomicWriteFile(
+        configPath,
+        JSON.stringify({
+          schemaVersion: 1,
+          projects: {
+            "c:/proj/a": { figmaAccessToken: "test-token-aaaaaaaaaa" },
+            "c:/proj/b": { figmaAccessToken: "test-token-bbbbbbbbbb" },
+            "c:/proj/c": { uiSystem: "UGUI" },
+          },
+        }),
+      );
+      expect(collectUserConfigSecrets().sort()).toEqual(["test-token-aaaaaaaaaa", "test-token-bbbbbbbbbb"].sort());
+
+      atomicWriteFile(configPath, "{ malformed");
+      expect(collectUserConfigSecrets()).toEqual([]);
+    } finally {
+      if (previous === undefined) delete process.env.FIGMA_TO_UPREFAB_CONFIG;
+      else process.env.FIGMA_TO_UPREFAB_CONFIG = previous;
       rmSync(dir, { recursive: true, force: true });
     }
   });

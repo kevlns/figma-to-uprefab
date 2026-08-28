@@ -3,7 +3,7 @@
  *
  * Every surfaced failure uses a stable `code` so agents and CI can route
  * errors deterministically. Codes are grouped by subsystem prefix:
- *   CFG_*   project / tracked config
+ *   CFG_*   user config / project config
  *   SCH_*   JSON Schema validation
  *   TOK_*   token handling (never logs the token itself)
  *   PAT_*   path safety
@@ -34,21 +34,10 @@ export class CliError extends Error {
 
 /** Convenience constructors for the most common classes of failure. */
 export const errors = {
-  configMissing(path: string): CliError {
-    return new CliError(
-      "CFG_FILE_MISSING",
-      `Tracked config file was not found: ${path}. Run 'figma-to-uprefab setup <project>' or 'config init'.`,
-    );
-  },
-
-  configInvalid(details: string): CliError {
-    return new CliError("CFG_SCHEMA_INVALID", `Tracked config is invalid against the project-config schema.`, 1, details);
-  },
-
   tokenMissing(): CliError {
     return new CliError(
       "TOK_MISSING",
-      "A Figma access token is required. Set FIGMA_ACCESS_TOKEN (file_content:read scope) or configure a user secret file.",
+      "Set FIGMA_ACCESS_TOKEN or add figmaAccessToken to the project section of the user config (~/.config/figma-to-uprefab/config.json).",
     );
   },
 
@@ -139,7 +128,7 @@ export const errors = {
   unityNotFound(editorPath: string): CliError {
     return new CliError(
       "UNI_EDITOR_NOT_FOUND",
-      `Unity Editor executable was not found at ${editorPath}. Set unity.editorPath in the tracked config.`,
+      `Unity Editor executable was not found at ${editorPath}. Set unity.editorPath in the user config.`,
     );
   },
 
@@ -152,7 +141,7 @@ export const errors = {
   },
 };
 
-/** Default (untracked, non-Vant-specific) staging root when config omits it. */
+/** Default (untracked, non-Vant-specific) staging root when the user config omits it. */
 export const DEFAULT_STAGING_ROOT = "Assets/Arts/Game/FigmaAssets/_Staging";
 
 /** Default base UI prefab variant used by the C# converter when config omits it. */

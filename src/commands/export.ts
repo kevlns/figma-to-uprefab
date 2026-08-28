@@ -32,7 +32,7 @@ export async function exportCommand(options: ExportCommandOptions): Promise<{
   let transport = options.transport;
   const networkNeeded = !(options.discoveryOnly && options.discoveryDocumentPath);
   if (!transport && networkNeeded) {
-    const token = resolveToken();
+    const token = resolveToken(resolved.projectPath, options.configPath);
     if (!token) {
       throw errors.tokenMissing();
     }

@@ -8,7 +8,7 @@
 `@kevlns/figma-to-uprefab` converts tagged Figma frames into staging-only Unity
 UGUI prefabs. Architecture is split by a hard boundary:
 
-- **Node** (this CLI): Figma REST -> source manifest + node-scoped PNGs; project
+- **Node** (this CLI): Figma REST -> source manifest + node-scoped PNGs; user
   config/schema/contract validation; approximation overlay validation; Unity
   install & build orchestration.
 - **C#** (embedded UPM package `com.kevlns.figma-to-uprefab`): the ONLY
@@ -38,18 +38,23 @@ UGUI prefabs. Architecture is split by a hard boundary:
        <PrefabName>.approximation.json  # optional overlay
    ```
 5. **Side effects**: `export` and `contract` have NO Unity project side effects.
-   Only `setup` and `unity install` modify the project.
-6. **Tokens**: never stored in tracked config, never logged, never copied into
-   source/IR/PNG/reports. Resolved from `FIGMA_ACCESS_TOKEN` (preferred) or the
-   per-user secret `~/.config/figma-to-uprefab/secret.json`. `figma-to-uprefab.local.json`
-   MUST NOT contain a token.
+   Only `unity install` modifies the project (`config init` writes the user
+   config, not the project).
+6. **Tokens**: resolved from `FIGMA_ACCESS_TOKEN` (preferred) or the
+   per-project `figmaAccessToken` inside the user config
+   `~/.config/figma-to-uprefab/config.json` (projects map keyed by normalized
+   absolute project path). Never stored in tracked repo files, never logged
+   (registered with the redactor on startup), never copied into
+   source/IR/PNG/reports or the build-time resolved-config.json.
 
 ## 3. Commands
 
 | Command | Purpose | Side effects |
 | --- | --- | --- |
-| `setup <project>` | write tracked `figma-to-uprefab.json` into a project | writes project config |
-| `config init/validate` | create / validate tracked config | init writes file |
+| `setup <project>` | add the current project's section to the user config | writes user config (not the project) |
+| `config init` | add a project section (defaults, `uiSystem` UGUI) to the user config | writes user config |
+| `config validate` | validate the user config project section, token presence, `uiSystem` | none |
+| `config migrate` | fold legacy `figma-to-uprefab.json`/`.local.json` into the user config (renames them to `*.migrated`) | writes user config, renames legacy files |
 | `export <fileKey>` | source manifests + PNGs + root index | writes staging only |
 | `contract` | validate staging layout vs schemas + invariants | none |
 | `doctor` | read-only diagnostics | none |
@@ -65,6 +70,14 @@ Errors are machine-readable `CODE` strings. Group prefixes:
 `OVL_*` overlay, `CON_*` contract, `UNI_*` Unity install/status,
 `BLD_*` build. Agents should surface the code + message verbatim.
 
+User-config `CFG_*` codes: `CFG_USER_FILE_MISSING`, `CFG_USER_JSON_INVALID`,
+`CFG_USER_SCHEMA_INVALID`, `CFG_LEGACY_CONFIG_FOUND`,
+`CFG_PROJECT_CONFIG_MISSING`, `CFG_PROJECT_CONFIG_EXISTS`,
+`CFG_MIGRATE_NOTHING_TO_MIGRATE`, `CFG_MIGRATE_SOURCE_INVALID`,
+`CFG_MIGRATE_RESULT_INVALID`, `CFG_ACTION_UNKNOWN`, and
+`CFG_UISYSTEM_UNSUPPORTED` (fail-closed for non-UGUI: rejected by Node before
+Unity batch runs, and again by the C# converter).
+
 ## 5. Security & safety
 
 - **Path safety**: all writes go through `assertInsideBase`/`safeJoin`; a path
@@ -76,14 +89,17 @@ Errors are machine-readable `CODE` strings. Group prefixes:
   detection fails closed, atomic install with rollback.
 - **Build fails closed** when the Unity package is not installed, when the
   receipt is missing, or when Unity is running (unless `--allow-running-editor`).
+- **Build handoff**: build writes a token-free resolved-config.json into
+  `Library/figma-to-uprefab/` for the C# converter (which reads `uiSystem` and
+  fails closed with `CFG_UISYSTEM_UNSUPPORTED` for non-UGUI).
 - **Do not fabricate Unity compile results.** A build outcome is only accepted
   from Unity's exit code + the report JSON.
 
 ## 6. Translations
 
 Business `translations` (Chinese layer names -> English identifiers) may only
-appear in `examples/` and `tests/fixtures/`. The shipped tracked config and
-fixtures carry no real business data.
+appear in `examples/` and `tests/fixtures/`. The shipped defaults and fixtures
+carry no real business data.
 
 ## 7. Skills
 

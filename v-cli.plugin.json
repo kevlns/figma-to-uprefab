@@ -12,7 +12,11 @@
   "environment": [
     {
       "name": "FIGMA_ACCESS_TOKEN",
-      "description": "Primary Figma token source (file_content:read). Never stored in tracked config; always redacted in logs."
+      "description": "Primary Figma token source (file_content:read). Never stored in tracked repo files; always redacted in logs. Falls back to the per-project figmaAccessToken in the user config (~/.config/figma-to-uprefab/config.json)."
+    },
+    {
+      "name": "FIGMA_TO_UPREFAB_CONFIG",
+      "description": "Override the user config location (default ~/.config/figma-to-uprefab/config.json)."
     },
     {
       "name": "ProgramFiles / LOCALAPPDATA",
@@ -35,7 +39,7 @@
       {
         "path": ["setup"],
         "usage": "figma-to-uprefab setup <project> [options]",
-        "description": "Write the tracked figma-to-uprefab.json into a Unity project (modifies the project).",
+        "description": "Add the project's section to the user config (~/.config/figma-to-uprefab/config.json). Does not modify the project.",
         "arguments": [
           {
             "name": "project",
@@ -46,29 +50,60 @@
         "options": [
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           },
           {
             "flags": "-f, --force",
-            "description": "overwrite an existing tracked config"
+            "description": "overwrite an existing project section"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Path of the tracked config created."
+          "description": "User config path + project key of the created/existing section."
         },
         "exitCodes": {
           "0": "success",
           "1": "error"
         },
         "safety": [
-          "writes only the tracked config file; never touches Unity assets"
+          "writes only the user config file; never touches Unity assets"
+        ]
+      },
+      {
+        "path": ["config", "init"],
+        "usage": "figma-to-uprefab config init [options]",
+        "description": "Add a project section (defaults, uiSystem UGUI, no token field) to the user config.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path (defaults to cwd)"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit user config path"
+          },
+          {
+            "flags": "-f, --force",
+            "description": "overwrite an existing project section"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "User config path + project key."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error"
+        },
+        "safety": [
+          "writes only the user config file"
         ]
       },
       {
         "path": ["config", "validate"],
         "usage": "figma-to-uprefab config validate [options]",
-        "description": "Validate the tracked config against project-config schema and reject token smuggling in the local overlay.",
+        "description": "Validate the user config project section against the user-config schema, token presence (env > config), and uiSystem (NGUI fails closed).",
         "arguments": [],
         "options": [
           {
@@ -77,12 +112,12 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Config validity + first failing JSON path on error."
+          "description": "Config validity + issue list (legacy files, schema, missing section, missing token, NGUI)."
         },
         "exitCodes": {
           "0": "valid",
@@ -91,6 +126,38 @@
         "safety": [
           "read-only",
           "never prints a token"
+        ]
+      },
+      {
+        "path": ["config", "migrate"],
+        "usage": "figma-to-uprefab config migrate [options]",
+        "description": "Fold legacy figma-to-uprefab.json + figma-to-uprefab.local.json into the user config and rename them to *.migrated. Never copies a token.",
+        "arguments": [],
+        "options": [
+          {
+            "flags": "--project <path>",
+            "description": "Unity project path"
+          },
+          {
+            "flags": "--config <path>",
+            "description": "explicit user config path"
+          },
+          {
+            "flags": "-f, --force",
+            "description": "overwrite an existing project section"
+          }
+        ],
+        "output": {
+          "format": "text",
+          "description": "Project key migrated + list of renamed legacy files."
+        },
+        "exitCodes": {
+          "0": "success",
+          "1": "error (nothing to migrate, existing section without --force, invalid merge)"
+        },
+        "safety": [
+          "writes only the user config file; renames legacy files in place",
+          "never copies figmaAccessToken out of legacy files"
         ]
       },
       {
@@ -111,7 +178,7 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           },
           {
             "flags": "--discovery-document <path>",
@@ -156,7 +223,7 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           },
           {
             "flags": "--index <path>",
@@ -191,7 +258,7 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           }
         ],
         "output": {
@@ -242,7 +309,7 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           },
           {
             "flags": "--dry-run",
@@ -279,7 +346,7 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           }
         ],
         "output": {
@@ -306,7 +373,7 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           },
           {
             "flags": "--dry-run",
@@ -341,7 +408,7 @@
           },
           {
             "flags": "--config <path>",
-            "description": "explicit tracked config path"
+            "description": "explicit user config path"
           },
           {
             "flags": "--index <path>",

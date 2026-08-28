@@ -86,11 +86,6 @@ export function atomicWriteFile(filePath: string, content: string | Uint8Array, 
   }
 }
 
-/** True when `fileName` matches the optional ignored `*.local.json` pattern. */
-export function isIgnoredLocalConfig(fileName: string): boolean {
-  return fileName.endsWith(".local.json");
-}
-
 /** Normalize `path` into a Unity-relative asset path (forward slashes, no leading slash). */
 export function toAssetPath(path: string): string {
   return forwardSlash(normalize(path)).replace(/^\/+/, "");

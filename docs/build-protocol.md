@@ -13,12 +13,28 @@ Written by Node to `<project>/Library/figma-to-uprefab/request.json`:
   "schemaVersion": 1,
   "mode": "convert-and-build",
   "rootIndexPath": "Assets/Arts/Game/FigmaAssets/_Staging/figma-roots.index.json",
-  "configPath": "figma-to-uprefab.json",
+  "configPath": "<project>/Library/figma-to-uprefab/resolved-config.json",
   "overlaySuffix": ".approximation.json"
 }
 ```
 
-Paths are project-relative (Unity-style). An optional
+The `configPath` points at the **token-free resolved config** written by Node
+for each build: Node resolves the user-config project section
+(`~/.config/figma-to-uprefab/config.json`, projects map keyed by normalized
+absolute project path) and writes `Library/figma-to-uprefab/resolved-config.json`
+containing only non-secret fields (`schemaVersion`, `uiSystem`, prefab/root
+paths, `tagMappings`). The Figma access token is resolved by Node only and is
+never written into the resolved config. The C# converter reads `uiSystem` from
+it and fails closed with `CFG_UISYSTEM_UNSUPPORTED` for anything other than
+UGUI (empty/missing falls back to UGUI); Node also rejects non-UGUI
+`uiSystem` up front with `CFG_UISYSTEM_UNSUPPORTED` before writing the
+resolved config or spawning Unity.
+
+`configPath` is written by Node as an ABSOLUTE path (the resolved
+`<project>/Library/figma-to-uprefab/resolved-config.json`); the C#
+`ResolveProjectPath` accepts both absolute paths and project-root-relative
+paths, so hand-written requests may use either form. All other paths in the
+request are project-relative (Unity-style). An optional
 `FIGMA_TO_UPREFAB_REQUEST` env var overrides the request location.
 
 ## Entrypoint
@@ -28,7 +44,7 @@ is invoked via `-executeMethod`. It:
 
 1. detects the legacy `Assets/Vant-Framework/Editor/FigmaPrefab` and fails
    closed (UNI_LEGACY_VANT_FIGMA_PREFAB) until migrated;
-2. reads the request + tracked config (no token);
+2. reads the request + the build-time resolved config (token-free; see above);
 3. per root: converts source manifest + optional overlay -> IR, writes
    `Meta/<name>.ir.json`, then builds the staging prefab;
 4. writes the report and exits 0/1.

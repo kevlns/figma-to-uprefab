@@ -58,13 +58,17 @@ namespace Kevlns.Editor.FigmaToUprefab
         public int? DesignPreviewCount { get; set; }
     }
 
+    // The Figma token is resolved by the Node CLI only (FIGMA_ACCESS_TOKEN or
+    // the user config's per-project figmaAccessToken). The build-time resolved
+    // config (Library/figma-to-uprefab/resolved-config.json) written by Node is
+    // token-free. C# never sees a token.
     public sealed class FigmaPrefabLocalConfig
     {
         [JsonProperty("schemaVersion")]
         public int SchemaVersion { get; set; }
 
-        // No figmaAccessToken: the token is resolved by the Node CLI only
-        // (FIGMA_ACCESS_TOKEN or user secret). C# never sees a token.
+        [JsonProperty("uiSystem")]
+        public string UiSystem { get; set; }
 
         [JsonProperty("baseUiPrefab")]
         public string BaseUiPrefab { get; set; }
@@ -212,6 +216,12 @@ namespace Kevlns.Editor.FigmaToUprefab
             if (localConfig != null && localConfig.SchemaVersion != 1)
             {
                 return CreateError("LOCAL_CONFIG_SCHEMA_UNSUPPORTED", "Local Figma config schemaVersion must be 1.", null);
+            }
+
+            string uiSystem = string.IsNullOrWhiteSpace(localConfig?.UiSystem) ? "UGUI" : localConfig.UiSystem.Trim();
+            if (!string.Equals(uiSystem, "UGUI", StringComparison.OrdinalIgnoreCase))
+            {
+                return CreateError("CFG_UISYSTEM_UNSUPPORTED", "uiSystem '" + uiSystem + "' is not supported yet; only UGUI is supported in this milestone.", null);
             }
 
             if (!string.IsNullOrWhiteSpace(localConfig?.BaseUiPrefab))

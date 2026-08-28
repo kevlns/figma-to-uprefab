@@ -5,13 +5,15 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { findConfigPath, readConfig, resolveToken } from "../core/config.js";
+import { readConfig, resolveTokenDetailed, userConfigPath } from "../core/config.js";
 import { installedPackageDir, status as packageStatus } from "../core/installer.js";
 import { projectVersionOf, resolveEditorPath, runningUnityProcesses } from "../core/unity.js";
 
 export interface DoctorReport {
   projectPath?: string;
-  configPath?: string;
+  userConfigPath?: string;
+  projectKey?: string;
+  uiSystem?: string;
   configValid: boolean;
   stagingRoot?: string;
   stagingExists: boolean;
@@ -31,51 +33,48 @@ export interface DoctorReport {
 
 export async function doctorCommand(options: { projectPath?: string; configPath?: string }): Promise<DoctorReport> {
   const checks: DoctorReport["checks"] = [];
-  let projectPath: string | undefined;
-  let configPath: string | undefined;
-  let stagingRoot: string | undefined;
   let stagingExists = false;
 
-  const token = resolveToken();
+  // Token check runs BEFORE config loading so a broken/missing config never
+  // hides an env token (and vice versa). Never prints the value.
+  const tokenInfo = resolveTokenDetailed(options.projectPath ?? process.cwd(), options.configPath);
   checks.push({
     name: "token",
-    ok: Boolean(token),
-    message: token ? "FIGMA token present (value never printed)." : "No Figma token (set FIGMA_ACCESS_TOKEN or user secret).",
+    ok: Boolean(tokenInfo.token),
+    message: tokenInfo.token
+      ? `FIGMA token present via ${tokenInfo.source === "env" ? "FIGMA_ACCESS_TOKEN env" : "user config project section"} (value never printed).`
+      : "No Figma token (set FIGMA_ACCESS_TOKEN or add figmaAccessToken to the user config project section).",
   });
 
-  const found = findConfigPath(options.projectPath, options.configPath);
-  if (!found) {
-    checks.push({ name: "config", ok: false, message: "No tracked figma-to-uprefab.json found." });
-    return {
-      configValid: false,
-      stagingExists,
-      tokenPresent: Boolean(token),
-      tokenMasked: token ? "[REDACTED]" : undefined,
-      unity: { editorExists: false, packageInstalled: false, packageModified: false, running: false, runningQueryFailed: false },
-      checks,
-    };
-  }
-
-  configPath = found;
   let resolved: ReturnType<typeof readConfig> | undefined;
   try {
-    resolved = readConfig(undefined, found);
-    projectPath = resolved.effective.projectPath;
-    stagingRoot = resolved.effective.stagingRoot;
-    configPath = resolved.configPath;
-    checks.push({ name: "config", ok: true, message: `Tracked config: ${found}` });
+    resolved = readConfig(options.projectPath, options.configPath);
   } catch (error) {
     checks.push({ name: "config", ok: false, message: error instanceof Error ? error.message : String(error) });
     return {
-      configPath,
+      projectPath: options.projectPath,
+      userConfigPath: options.configPath ?? userConfigPath(),
       configValid: false,
       stagingExists,
-      tokenPresent: Boolean(token),
-      tokenMasked: token ? "[REDACTED]" : undefined,
+      tokenPresent: Boolean(tokenInfo.token),
+      tokenMasked: tokenInfo.token ? "[REDACTED]" : undefined,
       unity: { editorExists: false, packageInstalled: false, packageModified: false, running: false, runningQueryFailed: false },
       checks,
     };
   }
+
+  const projectPath = resolved.effective.projectPath;
+  const userConfigPathUsed = resolved.userConfigPath;
+  const projectKey = resolved.projectKey;
+  const uiSystem = resolved.uiSystem;
+  const stagingRoot = resolved.effective.stagingRoot;
+
+  checks.push({ name: "config", ok: true, message: `User config: ${resolved.userConfigPath} [projects['${resolved.projectKey}']]` });
+  checks.push({
+    name: "ui-system",
+    ok: resolved.uiSystem === "UGUI",
+    message: `uiSystem: ${resolved.uiSystem}${resolved.uiSystem !== "UGUI" ? " (not supported yet)" : ""}`,
+  });
 
   const cfg = resolved;
 
@@ -124,12 +123,14 @@ export async function doctorCommand(options: { projectPath?: string; configPath?
 
   return {
     projectPath,
-    configPath,
+    userConfigPath: userConfigPathUsed,
+    projectKey,
+    uiSystem,
     configValid: true,
     stagingRoot,
     stagingExists,
-    tokenPresent: Boolean(token),
-    tokenMasked: token ? "[REDACTED]" : undefined,
+    tokenPresent: Boolean(tokenInfo.token),
+    tokenMasked: tokenInfo.token ? "[REDACTED]" : undefined,
     unity,
     checks,
   };

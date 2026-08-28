@@ -39,7 +39,7 @@ describe("package manifest identity", () => {
 
 describe("schema files are loadable by name", () => {
   it("loads all five authoritative schemas", () => {
-    for (const name of ["project-config", "source-manifest", "root-index", "approximation-overlay", "ir"] as const) {
+    for (const name of ["user-config", "source-manifest", "root-index", "approximation-overlay", "ir"] as const) {
       expect(validateSchema(name, {}).valid).toBe(false); // schema compiles, {} is invalid
     }
   });

@@ -20,8 +20,7 @@ const FORBIDDEN_NAMES = new Set(["nul", ".env"]);
 const REQUIRED_ENTRIES = [
   "dist/cli.mjs",
   "dist/index.mjs",
-  "schemas/project-config.schema.json",
-  "schemas/project-config-local.schema.json",
+  "schemas/user-config.schema.json",
   "schemas/source-manifest.schema.json",
   "schemas/root-index.schema.json",
   "schemas/approximation-overlay.schema.json",

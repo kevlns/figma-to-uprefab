@@ -8,6 +8,9 @@ nul
 # Optional per-user / per-machine overrides; never tracked.
 figma-to-uprefab.local.json
 *.local.json
+# `config migrate` renames legacy configs to *.migrated; the renamed local
+# file may still contain a real figmaAccessToken, so never track them.
+*.migrated
 # Never commit real credentials.
 .env
 .env.*

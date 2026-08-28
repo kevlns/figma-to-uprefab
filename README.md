@@ -28,18 +28,22 @@ npm i -g @kevlns/figma-to-uprefab
 npm install && npm run build
 ```
 
-Set a token (export requires it; never put it in tracked config):
+Set a token (export requires it). `FIGMA_ACCESS_TOKEN` wins over the config
+file; tokens never go into tracked repo files:
 
 ```bash
 export FIGMA_ACCESS_TOKEN=<your-token>   # preferred
-# or: ~/.config/figma-to-uprefab/secret.json -> { "figmaAccessToken": "..." }
+# or: edit ~/.config/figma-to-uprefab/config.json and set figmaAccessToken
+#     inside your project's section (see "User config" below)
 ```
 
 ## Quick start
 
 ```bash
-# 1. Initialize the tracked config in a Unity project
-figma-to-uprefab setup C:/path/to/UnityProject
+# 1. Add this Unity project's section to the user config, then edit
+#    ~/.config/figma-to-uprefab/config.json: figmaAccessToken is REQUIRED;
+#    optionally set uiSystem (UGUI|NGUI, default UGUI) and baseUiPrefab.
+figma-to-uprefab config init --project C:/path/to/UnityProject
 
 # 2. Install the embedded Unity converter package (modifies the project)
 figma-to-uprefab unity install --project C:/path/to/UnityProject
@@ -54,12 +58,45 @@ figma-to-uprefab contract --project C:/path/to/UnityProject
 figma-to-uprefab build --project C:/path/to/UnityProject
 ```
 
+## User config
+
+One user-level file: `~/.config/figma-to-uprefab/config.json` (override the
+location with the `FIGMA_TO_UPREFAB_CONFIG` env var). It holds a section per
+Unity project, keyed by normalized absolute project path. Full contract:
+`schemas/user-config.schema.json`.
+
+```json
+{
+  "schemaVersion": 1,
+  "projects": {
+    "c:/path/to/unityproject": {
+      "figmaAccessToken": "<your-token>",
+      "uiSystem": "UGUI"
+    },
+    "c:/path/to/other-project": {
+      "uiSystem": "UGUI",
+      "staging": { "root": "Assets/Custom/_Staging" },
+      "unity": { "editorPath": "C:/Program Files/Unity/Hub/Editor/2022.3.59f1c1/Editor/Unity.exe" }
+    }
+  }
+}
+```
+
+- `figmaAccessToken`: optional per-project token; `FIGMA_ACCESS_TOKEN` env
+  takes precedence. Never stored in tracked repo files, never logged
+  (registered with the redactor on startup).
+- `uiSystem`: `UGUI` (default) or `NGUI`. NGUI fails closed in both Node and
+  the C# converter (`CFG_UISYSTEM_UNSUPPORTED`) in this milestone.
+- Legacy `figma-to-uprefab.json` / `figma-to-uprefab.local.json` files fail
+  closed (`CFG_LEGACY_CONFIG_FOUND`) until you run
+  `figma-to-uprefab config migrate --project <path>`.
+
 ## Commands
 
 | Command | Description |
 | --- | --- |
-| `setup <project>` | write tracked `figma-to-uprefab.json` into a project |
-| `config init\|validate` | manage tracked config |
+| `setup <project>` | add the project's section to the user config (alias of `config init`) |
+| `config init\|validate\|migrate` | manage the user config and its per-project sections |
 | `export <fileKey>` | Figma REST -> source manifests + PNGs + root index |
 | `contract` | validate staging layout vs schemas + invariants |
 | `doctor` | read-only diagnostics |
@@ -91,8 +128,9 @@ and never rewrites the source manifest. See
 
 ## Security
 
-- Tokens come from `FIGMA_ACCESS_TOKEN` or the per-user secret file; never from
-  tracked/local config; always redacted in logs.
+- Tokens come from `FIGMA_ACCESS_TOKEN` (preferred) or the user config's
+  per-project `figmaAccessToken`; never from tracked repo files; always
+  redacted in logs.
 - All writes are path-safety-checked and published atomically.
 - Unity installs are dry-run-able, receipted, modification-detecting, and
   atomic with rollback.

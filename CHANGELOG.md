@@ -3,6 +3,46 @@
 All notable changes to @kevlns/figma-to-uprefab are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+- Single user-level config file `~/.config/figma-to-uprefab/config.json`
+  (overridable via `FIGMA_TO_UPREFAB_CONFIG`) with per-project sections keyed
+  by normalized absolute project path (`schemas/user-config.schema.json`),
+  including a `uiSystem` field (`UGUI` | `NGUI`).
+- `uiSystem`: `UGUI` default; NGUI fails closed in both Node (`config validate`
+  issue) and the C# converter (`CFG_UISYSTEM_UNSUPPORTED`).
+- `config migrate`: folds legacy `figma-to-uprefab.json` +
+  `figma-to-uprefab.local.json` into the user config and renames them to
+  `*.migrated` (tokens are stripped, never copied).
+- Token resolvable from the user config project section
+  (`figmaAccessToken`); `FIGMA_ACCESS_TOKEN` env takes precedence. Config
+  tokens are registered with the log redactor on startup.
+- Build writes a token-free `resolved-config.json` into
+  `Library/figma-to-uprefab/` for the C# converter.
+- Build fails fast on a non-UGUI `uiSystem` (`CFG_UISYSTEM_UNSUPPORTED`)
+  before writing `resolved-config.json` or spawning Unity batch.
+
+### Changed
+- **BREAKING**: the two-file project config (tracked `figma-to-uprefab.json` +
+  ignored `figma-to-uprefab.local.json`) and the `~/.config/figma-to-uprefab/secret.json`
+  user secret file are replaced by ONE user-level config file
+  `~/.config/figma-to-uprefab/config.json` with per-project sections. Legacy
+  files fail closed with `CFG_LEGACY_CONFIG_FOUND` until migrated via
+  `figma-to-uprefab config migrate --project <path>`.
+- Token priority is now env > user config (`FIGMA_ACCESS_TOKEN` preferred over
+  the project section's `figmaAccessToken`).
+
+### Removed
+- Tracked/local project config schemas (`schemas/project-config.schema.json`,
+  `schemas/project-config-local.schema.json`) and secret-file support
+  (`~/.config/figma-to-uprefab/secret.json`, `FIGMA_TO_UPREFAB_SECRET`).
+
+### Fixed
+- `*.migrated` legacy config files (produced by `config migrate`; the renamed
+  local file may still contain a real `figmaAccessToken`) are now gitignored
+  so they cannot be committed.
+
 ## [0.1.0] - 2025-08-26
 
 First reviewable milestone.

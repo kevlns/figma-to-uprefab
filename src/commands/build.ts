@@ -5,8 +5,8 @@
  */
 
 import { readConfig } from "../core/config.js";
-import { errors } from "../core/errors.js";
-import { buildWorkDir, orchestrateBuild, type BuildReport } from "../core/build.js";
+import { CliError, errors } from "../core/errors.js";
+import { buildWorkDir, orchestrateBuild, writeResolvedConfigForBuild, type BuildReport } from "../core/build.js";
 import { assertUnityPackageInstalled } from "./unity.js";
 import { validateContract } from "../contract/contract.js";
 
@@ -28,6 +28,15 @@ export async function buildCommand(options: BuildCommandOptions): Promise<{
   reportPath: string;
 }> {
   const resolved = readConfig(options.projectPath, options.configPath);
+  // Fail fast on a non-UGUI uiSystem before any build side effect: the
+  // resolved config is not written and Unity batch is never spawned.
+  if (resolved.uiSystem !== "UGUI") {
+    throw new CliError(
+      "CFG_UISYSTEM_UNSUPPORTED",
+      `only UGUI is supported in this milestone; ${resolved.uiSystem} is rejected before Unity batch runs.`,
+    );
+  }
+
   const projectPath = resolved.effective.projectPath;
   const stagingRoot = resolved.effective.stagingRoot.replace(/[\\/]+$/, "");
   const indexPath = options.indexPath ?? `${stagingRoot}/figma-roots.index.json`;
@@ -42,11 +51,23 @@ export async function buildCommand(options: BuildCommandOptions): Promise<{
   }
 
   const workDir = buildWorkDir(projectPath);
+  const resolvedConfigPath = writeResolvedConfigForBuild(workDir, {
+    schemaVersion: 1,
+    uiSystem: resolved.uiSystem,
+    baseUiPrefab: resolved.effective.baseUiPrefab,
+    textPrefab: resolved.effective.textPrefab,
+    specialListPrefab: resolved.effective.specialListPrefab,
+    specialGridPrefab: resolved.effective.specialGridPrefab,
+    formalPrefabRoot: resolved.effective.formalPrefabRoot,
+    formalSpriteRoot: resolved.effective.formalSpriteRoot,
+    tagMappings: resolved.effective.tagMappings,
+  });
+
   const report = await orchestrateBuild({
     projectPath,
     editorPath: resolved.effective.editorPath,
     rootIndexPath: indexPath,
-    configPath: resolved.configPath,
+    configPath: resolvedConfigPath,
     allowRunningEditor: options.allowRunningEditor,
     fakeReport: options.fakeReport,
     onStdout: options.onStdout,

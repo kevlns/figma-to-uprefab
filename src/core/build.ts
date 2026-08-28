@@ -8,7 +8,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { atomicWriteFile } from "./atomic.js";
 import { errors } from "./errors.js";
 import { invokeUnityBatch, resolveEditorPath, runningUnityProcesses } from "./unity.js";
@@ -36,6 +36,23 @@ export interface BuildReport {
   status: "ok" | "error";
   entries: BuildReportEntry[];
   issues: Array<{ code: string; message: string }>;
+}
+
+/**
+ * Token-free resolved config handed to the C# converter at build time
+ * (Library/figma-to-uprefab/resolved-config.json). figmaAccessToken is
+ * deliberately absent: the C# side never sees a token.
+ */
+export interface ResolvedBuildConfig {
+  schemaVersion: 1;
+  uiSystem?: string;
+  baseUiPrefab?: string;
+  textPrefab?: string;
+  specialListPrefab?: string;
+  specialGridPrefab?: string;
+  formalPrefabRoot?: string;
+  formalSpriteRoot?: string;
+  tagMappings?: Record<string, unknown>;
 }
 
 export interface BuildOrchestrationOptions {
@@ -69,6 +86,30 @@ export function writeBuildRequest(workDir: string, request: BuildRequest): strin
   mkdirSync(workDir, { recursive: true });
   atomicWriteFile(path, JSON.stringify(request, null, 2));
   return path;
+}
+
+/**
+ * Write the token-free resolved config for the C# converter. Only the
+ * whitelisted fields above are serialized, so a smuggled figmaAccessToken can
+ * never reach disk even if a caller passes an untyped object.
+ */
+export function writeResolvedConfigForBuild(workDir: string, config: ResolvedBuildConfig): string {
+  mkdirSync(workDir, { recursive: true });
+  const safe: ResolvedBuildConfig = {
+    schemaVersion: config.schemaVersion,
+    uiSystem: config.uiSystem,
+    baseUiPrefab: config.baseUiPrefab,
+    textPrefab: config.textPrefab,
+    specialListPrefab: config.specialListPrefab,
+    specialGridPrefab: config.specialGridPrefab,
+    formalPrefabRoot: config.formalPrefabRoot,
+    formalSpriteRoot: config.formalSpriteRoot,
+    tagMappings: config.tagMappings,
+  };
+
+  const path = join(workDir, "resolved-config.json");
+  atomicWriteFile(path, JSON.stringify(safe, null, 2));
+  return resolve(path);
 }
 
 export function readBuildReport(workDir: string): BuildReport {

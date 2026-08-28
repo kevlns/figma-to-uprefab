@@ -14,16 +14,14 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = join(thisDir, "..", "..");
 
 export type SchemaName =
-  | "project-config"
-  | "project-config-local"
+  | "user-config"
   | "source-manifest"
   | "root-index"
   | "approximation-overlay"
   | "ir";
 
 const SCHEMA_FILES: Record<SchemaName, string> = {
-  "project-config": "project-config.schema.json",
-  "project-config-local": "project-config-local.schema.json",
+  "user-config": "user-config.schema.json",
   "source-manifest": "source-manifest.schema.json",
   "root-index": "root-index.schema.json",
   "approximation-overlay": "approximation-overlay.schema.json",
@@ -52,7 +50,7 @@ function resolveSchemaDir(): string {
   for (let depth = 0; depth < 6; depth++) {
     const candidate = join(dir, "schemas");
     try {
-      if (existsSync(join(candidate, SCHEMA_FILES["project-config"]!))) {
+      if (existsSync(join(candidate, SCHEMA_FILES["user-config"]!))) {
         return candidate;
       }
     } catch {

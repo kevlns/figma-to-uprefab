@@ -9,12 +9,13 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { CliError } from "./core/errors.js";
 import { Logger } from "./core/logger.js";
-import { resolveToken } from "./core/config.js";
+import { collectUserConfigSecrets } from "./core/config.js";
 import { Redactor } from "./core/redact.js";
 import { agentsDocContent } from "./core/agent-docs.js";
 import { VERSION } from "./version.js";
 import {
   configInit,
+  configMigrate,
   configValidate,
   setupCommand,
 } from "./commands/config.js";
@@ -38,26 +39,26 @@ export function buildProgram(): Command {
 
   program
     .command("setup <project>")
-    .description("Initialize the tracked figma-to-uprefab.json in a Unity project (modifies the project).")
-    .option("--config <path>", "explicit tracked config path")
-    .option("-f, --force", "overwrite an existing tracked config")
+    .description("Add the project's section to the user config (~/.config/figma-to-uprefab/config.json).")
+    .option("--config <path>", "explicit user config path")
+    .option("-f, --force", "overwrite an existing project section")
     .action(async (project: string, opts: { config?: string; force?: boolean }) => {
       const result = setupCommand({ projectPath: project, configPath: opts.config, force: opts.force });
-      log(`Tracked config ${result.created ? "created" : "already exists"}: ${result.configPath}`);
+      log(`User config project section ${result.created ? "created" : "already exists"} [${result.projectKey}]: ${result.configPath}`);
     });
 
   program
     .command("config")
-    .description("Manage the tracked project config.")
-    .argument("<action>", "init | validate")
+    .description("Manage the user config (~/.config/figma-to-uprefab/config.json) and its per-project sections.")
+    .argument("<action>", "init | validate | migrate")
     .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit tracked config path")
-    .option("-f, --force", "overwrite existing config on init")
+    .option("--config <path>", "explicit user config path")
+    .option("-f, --force", "overwrite an existing project section (init/migrate)")
     .action(async (action: string, opts: { project?: string; config?: string; force?: boolean }) => {
       if (action === "init") {
         const project = opts.project ?? process.cwd();
         const result = configInit({ projectPath: project, configPath: opts.config, force: opts.force });
-        log(`Tracked config ${result.created ? "created" : "already exists"}: ${result.configPath}`);
+        log(`User config project section ${result.created ? "created" : "already exists"} [${result.projectKey}]: ${result.configPath}`);
         return;
       }
 
@@ -76,6 +77,17 @@ export function buildProgram(): Command {
         return;
       }
 
+      if (action === "migrate") {
+        const project = opts.project ?? process.cwd();
+        const result = configMigrate({ projectPath: project, configPath: opts.config, force: opts.force });
+        log(`migrated project section '${result.projectKey}' into ${result.configPath}`);
+        for (const renamed of result.renamedLegacy) {
+          log(`renamed legacy config: ${renamed}`);
+        }
+
+        return;
+      }
+
       throw new CliError("CFG_ACTION_UNKNOWN", `Unknown config action: ${action}`);
     });
 
@@ -83,7 +95,7 @@ export function buildProgram(): Command {
     .command("export <fileKey>")
     .description("Export Figma source manifests + node PNGs + root index into staging (no Unity side effects).")
     .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit tracked config path")
+    .option("--config <path>", "explicit user config path")
     .option("--discovery-document <path>", "test hook: captured GET /v1/files/:key payload")
     .option("--node-documents <dir>", "test hook: read node documents from <safe-id>.json files")
     .option("--discovery-only", "discover and validate roots without fetching node docs or images")
@@ -109,7 +121,7 @@ export function buildProgram(): Command {
     .command("contract")
     .description("Validate the canonical staging layout against schemas + invariants (read-only).")
     .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit tracked config path")
+    .option("--config <path>", "explicit user config path")
     .option("--index <path>", "override root index path")
     .option("--allow-missing-ir", "report missing IR as a warning instead of error")
     .action((opts: { project?: string; config?: string; index?: string; allowMissingIr?: boolean }) => {
@@ -136,7 +148,7 @@ export function buildProgram(): Command {
     .command("doctor")
     .description("Read-only diagnostics of config, staging, Unity, and token presence.")
     .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit tracked config path")
+    .option("--config <path>", "explicit user config path")
     .action(async (opts: { project?: string; config?: string }) => {
       const report = await doctorCommand({ projectPath: opts.project, configPath: opts.config });
       for (const check of report.checks) {
@@ -168,7 +180,7 @@ export function buildProgram(): Command {
     .description("Manage the embedded com.kevlns.figma-to-uprefab UPM package in the project.")
     .argument("<action>", "install | status | uninstall")
     .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit tracked config path")
+    .option("--config <path>", "explicit user config path")
     .option("--dry-run", "validate + preview without writing to the project")
     .option("-f, --force", "override modification detection / overwrite existing")
     .action(async (action: string, opts: { project?: string; config?: string; dryRun?: boolean; force?: boolean }) => {
@@ -210,7 +222,7 @@ export function buildProgram(): Command {
     .command("build")
     .description("Run the C# converter in Unity batch mode (request/report protocol).")
     .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit tracked config path")
+    .option("--config <path>", "explicit user config path")
     .option("--index <path>", "override root index path")
     .option("--allow-running-editor", "proceed even if Unity is running")
     .action(async (opts: { project?: string; config?: string; index?: string; allowRunningEditor?: boolean }) => {
@@ -219,8 +231,8 @@ export function buildProgram(): Command {
         configPath: opts.config,
         indexPath: opts.index,
         allowRunningEditor: opts.allowRunningEditor,
-        onStdout: (line) => process.stdout.write(`[unity] ${line}`),
-        onStderr: (line) => process.stderr.write(`[unity] ${line}`),
+        onStdout: (line) => process.stdout.write(`[unity] ${redactor.redact(line)}`),
+        onStderr: (line) => process.stderr.write(`[unity] ${redactor.redact(line)}`),
       });
 
       const okCount = result.report.entries.filter((entry) => !entry.errorCode).length;
@@ -238,9 +250,11 @@ export function buildProgram(): Command {
 const redactor = new Redactor();
 redactor.addSecret(process.env.FIGMA_ACCESS_TOKEN);
 try {
-  redactor.addSecret(resolveToken());
+  for (const secret of collectUserConfigSecrets()) {
+    redactor.addSecret(secret);
+  }
 } catch {
-  /* secret-file read failures are reported by the command that needs the token */
+  /* collectUserConfigSecrets never throws, but guard the registration anyway */
 }
 const logger = new Logger({ level: "info", redact: (text) => redactor.redact(text) });
 

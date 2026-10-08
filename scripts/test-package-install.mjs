@@ -58,7 +58,7 @@ function run() {
     const cliPath = join(dir, "node_modules", "@kevlns", "figma-to-uprefab", "dist", "cli.mjs");
     const versionOut = execFileSync(process.execPath, [cliPath, "--version"], { encoding: "utf8", windowsHide: true }).trim();
     const helpOut = execFileSync(process.execPath, [cliPath, "--help"], { encoding: "utf8", windowsHide: true });
-    if (versionOut !== "0.1.0") throw new Error(`bin --version 输出异常: ${versionOut}`);
+    if (versionOut !== "0.1.1") throw new Error(`bin --version 输出异常: ${versionOut}`);
     if (!helpOut.includes("export") || !helpOut.includes("contract")) throw new Error("bin --help 缺少关键命令");
 
     console.log(`test:package passed: installed ${tgz}, bin version ${versionOut}`);

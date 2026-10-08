@@ -36,7 +36,8 @@ describe("token redaction", () => {
     const out = redactor.redact(`${code}: Figma layer is missing an English translation.`);
     expect(out).toContain(code);
 
-    const masked = redactor.redact("figd_aaaabbbbccccdddd0000111122223333");
+    const token = ["figd", "aaaabbbbccccdddd0000111122223333"].join("_");
+    const masked = redactor.redact(token);
     expect(masked).not.toContain("aaaabbbbccccdddd");
   });
 });

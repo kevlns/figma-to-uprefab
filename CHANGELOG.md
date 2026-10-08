@@ -3,7 +3,12 @@
 All notable changes to @kevlns/figma-to-uprefab are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [0.1.1] - 2026-10-08
+
+### Fixed
+- CI detects Figma credential values instead of flagging HTTP header names.
+- Quick start validates source before build and the complete source/IR contract after build.
+- Updated fast-uri, brace-expansion, js-yaml and source-map-js patch versions to resolve high-severity dependency advisories.
 
 ### Added
 - Single user-level config file `~/.config/figma-to-uprefab/config.json`
@@ -43,7 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
   local file may still contain a real `figmaAccessToken`) are now gitignored
   so they cannot be committed.
 
-## [0.1.0] - 2025-08-26
+## [0.1.0] - 2026-08-26
 
 First reviewable milestone.
 
@@ -103,7 +108,7 @@ First reviewable milestone.
   whitelisted fields, mandatory reason; merged by the C# converter into
   `IR.layout.approximation`; source manifests are never rewritten.
 - Embedded Unity package `com.kevlns.figma-to-uprefab`: C# Editor converter
-  (source + overlay -> IR -> Prefab), self-contained (no Vant.System.UI),
+  (source + overlay -> IR -> Prefab), requires Vant.Framework,
   token-free config, parameterless batch entrypoint (request/report protocol),
   legacy `Assets/Vant-Framework/Editor/FigmaPrefab` fail-closed guard.
 - Tests: config split, root discovery hidden/nested/duplicate, layout/text,

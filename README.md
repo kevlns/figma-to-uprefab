@@ -41,8 +41,9 @@ export FIGMA_ACCESS_TOKEN=<your-token>   # preferred
 
 ```bash
 # 1. Add this Unity project's section to the user config, then edit
-#    ~/.config/figma-to-uprefab/config.json: figmaAccessToken is REQUIRED;
-#    optionally set uiSystem (UGUI|NGUI, default UGUI) and baseUiPrefab.
+#    ~/.config/figma-to-uprefab/config.json: set figmaAccessToken unless
+#    FIGMA_ACCESS_TOKEN is set; keep uiSystem as UGUI (the default).
+#    Optionally configure baseUiPrefab and the other project prefab paths.
 figma-to-uprefab config init --project C:/path/to/UnityProject
 
 # 2. Install the embedded Unity converter package (modifies the project)
@@ -51,11 +52,14 @@ figma-to-uprefab unity install --project C:/path/to/UnityProject
 # 3. Export a Figma file into staging (no Unity side effects)
 figma-to-uprefab export <fileKey> --project C:/path/to/UnityProject
 
-# 4. Validate staging layout
-figma-to-uprefab contract --project C:/path/to/UnityProject
+# 4. Validate exported source and assets; build has not generated IR yet
+figma-to-uprefab contract --project C:/path/to/UnityProject --allow-missing-ir
 
 # 5. Run the C# converter in Unity batch (source + overlay -> IR -> prefabs)
 figma-to-uprefab build --project C:/path/to/UnityProject
+
+# 6. Validate the complete source/IR contract after build
+figma-to-uprefab contract --project C:/path/to/UnityProject
 ```
 
 ## User config

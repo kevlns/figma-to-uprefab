@@ -1,6 +1,6 @@
 {
   "name": "@kevlns/figma-to-uprefab",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Figma REST -> staging-only Unity UGUI prefabs. Node orchestrates export/contract/install/build; the embedded Unity Editor package (source manifest + approximation overlay -> IR -> Prefab) is the only source->IR converter.",
   "private": false,
   "publishConfig": {

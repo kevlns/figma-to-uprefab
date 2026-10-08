@@ -29,8 +29,10 @@ jobs:
             ($_.Name -like '*.tgz' -or $_.Name -like '*.local.json' -or $_.Name -like 'nul')
           }
           if ($bad) { $bad.FullName; throw 'forbidden artifacts present' }
+          # Match credential values, not the HTTP header name used by the client.
+          $tokenPattern = '\b(?:figd|figfp)_[A-Za-z0-9_-]{32,}\b'
           $leak = Get-ChildItem -Recurse -Force -File | Where-Object {
             $_.FullName -notlike '*\node_modules\*' -and $_.FullName -notlike '*\.git\*' -and
-            $_.Name -notlike '*.lock' -and (Select-String -Path $_.FullName -Pattern 'X-Figma-Token' -Quiet)
+            $_.Name -notlike '*.lock' -and (Select-String -LiteralPath $_.FullName -Pattern $tokenPattern -Quiet)
           }
           if ($leak) { $leak.FullName; throw 'possible token leakage' }

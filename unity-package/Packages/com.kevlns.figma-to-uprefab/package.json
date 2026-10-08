@@ -1,6 +1,6 @@
 {
   "name": "com.kevlns.figma-to-uprefab",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "displayName": "Figma To Uprefab (Editor)",
   "description": "Unity Editor converter: source manifest + approximation overlay -> IR -> staging UGUI prefab skeleton. Companion to the @kevlns/figma-to-uprefab Node CLI. Requires the Vant Framework (Vant.Framework assembly provides ReferenceContainerGenerator, CachedList/GridComponent, FigmaAutoLayoutGroup).",
   "unity": "2022.3",

@@ -28,8 +28,8 @@ npm i -g @kevlns/figma-to-uprefab
 npm install && npm run build
 ```
 
-Set a token (export requires it). `FIGMA_ACCESS_TOKEN` wins over the config
-file; tokens never go into tracked repo files:
+Export requires a Figma access token — `FIGMA_ACCESS_TOKEN` (preferred) or the
+user config (below). Tokens never go into tracked repo files:
 
 ```bash
 export FIGMA_ACCESS_TOKEN=<your-token>   # preferred
@@ -40,10 +40,7 @@ export FIGMA_ACCESS_TOKEN=<your-token>   # preferred
 ## Quick start
 
 ```bash
-# 1. Add this Unity project's section to the user config, then edit
-#    ~/.config/figma-to-uprefab/config.json: set figmaAccessToken unless
-#    FIGMA_ACCESS_TOKEN is set; keep uiSystem as UGUI (the default).
-#    Optionally configure baseUiPrefab and the other project prefab paths.
+# 1. Register the project in the user config (see "User config" below)
 figma-to-uprefab config init --project C:/path/to/UnityProject
 
 # 2. Install the embedded Unity converter package (modifies the project)
@@ -87,8 +84,7 @@ Unity project, keyed by normalized absolute project path. Full contract:
 ```
 
 - `figmaAccessToken`: optional per-project token; `FIGMA_ACCESS_TOKEN` env
-  takes precedence. Never stored in tracked repo files, never logged
-  (registered with the redactor on startup).
+  takes precedence.
 - `uiSystem`: `UGUI` (default) or `NGUI`. NGUI fails closed in both Node and
   the C# converter (`CFG_UISYSTEM_UNSUPPORTED`) in this milestone.
 - Legacy `figma-to-uprefab.json` / `figma-to-uprefab.local.json` files fail

@@ -18,12 +18,12 @@ describe("package manifest identity", () => {
 
   it("is the expected identity", () => {
     expect(pkg.name).toBe("@kevlns/figma-to-uprefab");
-    expect(pkg.version).toBe("0.1.1");
+    expect(pkg.version).toBe("0.1.2");
     expect(pkg.type).toBe("module");
     expect(pkg.engines.node).toBe(">=20");
     expect(pkg.bin["figma-to-uprefab"]).toBe("dist/cli.mjs");
     expect(PACKAGE_NAME).toBe("@kevlns/figma-to-uprefab");
-    expect(VERSION).toBe("0.1.1");
+    expect(VERSION).toBe("0.1.2");
   });
 
   it("ships the required files", () => {

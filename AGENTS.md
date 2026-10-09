@@ -1,6 +1,6 @@
 # AGENTS.md — @kevlns/figma-to-uprefab
 
-> This file is the canonical Agent specification ("正本"). Agents operating on
+> This file is the canonical Agent specification. Agents operating on
 > this package MUST follow it. `figma-to-uprefab agent docs` prints this file.
 
 ## 1. What this package does
@@ -30,7 +30,7 @@ UGUI prefabs. Architecture is split by a hard boundary:
    <stagingRoot>/figma-roots.index.json
    <stagingRoot>/<PrefabName>/
      <PrefabName>.prefab            # root prefab
-     <PrefabName>...<Cell>.prefab   # item prefabs (C#)
+     <PrefabName><Container><Cell>.prefab   # item prefabs (C#)
      Assets/                        # node-scoped PNGs
      Meta/
        <PrefabName>.source.json
@@ -51,7 +51,7 @@ UGUI prefabs. Architecture is split by a hard boundary:
 
 | Command | Purpose | Side effects |
 | --- | --- | --- |
-| `setup <project>` | add the current project's section to the user config | writes user config (not the project) |
+| `setup <project>` | add the given project's section to the user config | writes user config (not the project) |
 | `config init` | add a project section (defaults, `uiSystem` UGUI) to the user config | writes user config |
 | `config validate` | validate the user config project section, token presence, `uiSystem` | none |
 | `config migrate` | fold legacy `figma-to-uprefab.json`/`.local.json` into the user config (renames them to `*.migrated`) | writes user config, renames legacy files |
@@ -68,7 +68,7 @@ Errors are machine-readable `CODE` strings. Group prefixes:
 `CFG_*` config, `SCH_*` schema, `TOK_*` token, `PAT_*` path safety,
 `RST_*` Figma REST, `DSC_*` discovery, `EXP_*` export, `LYT_*` layout/text,
 `OVL_*` overlay, `CON_*` contract, `UNI_*` Unity install/status,
-`BLD_*` build. Agents should surface the code + message verbatim.
+`BLD_*` build, `DOC_*` agent docs. Agents should surface the code + message verbatim.
 
 User-config `CFG_*` codes: `CFG_USER_FILE_MISSING`, `CFG_USER_JSON_INVALID`,
 `CFG_USER_SCHEMA_INVALID`, `CFG_LEGACY_CONFIG_FOUND`,

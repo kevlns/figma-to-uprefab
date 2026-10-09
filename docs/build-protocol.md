@@ -24,11 +24,10 @@ for each build: Node resolves the user-config project section
 absolute project path) and writes `Library/figma-to-uprefab/resolved-config.json`
 containing only non-secret fields (`schemaVersion`, `uiSystem`, prefab/root
 paths, `tagMappings`). The Figma access token is resolved by Node only and is
-never written into the resolved config. The C# converter reads `uiSystem` from
-it and fails closed with `CFG_UISYSTEM_UNSUPPORTED` for anything other than
-UGUI (empty/missing falls back to UGUI); Node also rejects non-UGUI
-`uiSystem` up front with `CFG_UISYSTEM_UNSUPPORTED` before writing the
-resolved config or spawning Unity.
+never written into the resolved config. Node rejects non-UGUI `uiSystem` up
+front with `CFG_UISYSTEM_UNSUPPORTED` before writing the resolved config or
+spawning Unity; the C# converter enforces the same gate when reading it
+(empty/missing falls back to UGUI).
 
 `configPath` is written by Node as an ABSOLUTE path (the resolved
 `<project>/Library/figma-to-uprefab/resolved-config.json`); the C#
@@ -80,3 +79,4 @@ with the summarized issue list when `status` is `error`.
 - package installed but no receipt -> `UNI_RECEIPT_MISSING`
 - Unity running (unless `--allow-running-editor`) -> `UNI_RUNNING`
 - Unity editor not found -> `UNI_EDITOR_NOT_FOUND`
+- staging contract preflight (source/assets, IR allowed missing) fails -> `BLD_CONTRACT_INVALID`

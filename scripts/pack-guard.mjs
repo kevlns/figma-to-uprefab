@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 
 const EXPECTED_PACKAGE_NAME = "@kevlns/figma-to-uprefab";
-const EXPECTED_VERSION = "0.1.3";
+const EXPECTED_VERSION = "0.1.4";
 const EXPECTED_TGZ = `kevlns-figma-to-uprefab-${EXPECTED_VERSION}.tgz`;
 const MANIFEST_PATH = "v-cli.plugin.json";
 const PAYLOAD_PKG_JSON = "unity-package/Packages/com.kevlns.figma-to-uprefab/package.json";

@@ -35,7 +35,17 @@ export function buildProgram(): Command {
   program
     .name("figma-to-uprefab")
     .description("Figma REST -> staging-only Unity UGUI prefabs (Node orchestration + embedded Unity Editor converter)")
-    .version(VERSION);
+    .version(VERSION)
+    .option("--json", "输出结构化完成回执。");
+
+  function emit(result: unknown): boolean {
+    if (!program.opts().json) return false;
+    const r = result as Record<string, unknown>;
+    const failed = r.valid === false || r.status === "ModifiedRejected" || r.configValid === false || (Array.isArray(r.checks) && r.checks.some((c: unknown) => typeof c === "object" && c !== null && "ok" in c && c.ok === false));
+    process.stdout.write(redactor.redact(JSON.stringify(result)) + "\n");
+    if (failed) process.exitCode = 1;
+    return true;
+  }
 
   program
     .command("setup <project>")
@@ -44,6 +54,7 @@ export function buildProgram(): Command {
     .option("-f, --force", "覆盖已有工程配置。")
     .action(async (project: string, opts: { config?: string; force?: boolean }) => {
       const result = setupCommand({ projectPath: project, configPath: opts.config, force: opts.force });
+      if (emit(result)) return;
       log(`User config project section ${result.created ? "created" : "already exists"} [${result.projectKey}]: ${result.configPath}`);
     });
 
@@ -58,12 +69,14 @@ export function buildProgram(): Command {
       if (action === "init") {
         const project = opts.project ?? process.cwd();
         const result = configInit({ projectPath: project, configPath: opts.config, force: opts.force });
+      if (emit(result)) return;
         log(`User config project section ${result.created ? "created" : "already exists"} [${result.projectKey}]: ${result.configPath}`);
         return;
       }
 
       if (action === "validate") {
         const result = configValidate({ projectPath: opts.project, configPath: opts.config });
+      if (emit(result)) return;
         if (result.valid) {
           log(`Config valid: ${result.configPath}`);
           return;
@@ -80,6 +93,7 @@ export function buildProgram(): Command {
       if (action === "migrate") {
         const project = opts.project ?? process.cwd();
         const result = configMigrate({ projectPath: project, configPath: opts.config, force: opts.force });
+      if (emit(result)) return;
         log(`migrated project section '${result.projectKey}' into ${result.configPath}`);
         for (const renamed of result.renamedLegacy) {
           log(`renamed legacy config: ${renamed}`);
@@ -110,6 +124,7 @@ export function buildProgram(): Command {
         discoveryOnly: opts.discoveryOnly,
         imageScale: opts.imageScale,
       });
+      if (emit(result)) return;
 
       log(`Figma root discovery completed: ${result.rootCount} root(s).`);
       for (const warning of result.warnings) {
@@ -131,6 +146,7 @@ export function buildProgram(): Command {
         indexPath: opts.index,
         allowMissingIr: opts.allowMissingIr,
       });
+      if (emit(result)) return;
 
       if (result.valid) {
         log(`Contract valid: ${result.rootsChecked} root(s).`);
@@ -151,6 +167,7 @@ export function buildProgram(): Command {
     .option("--config <path>", "用户配置的明确路径。")
     .action(async (opts: { project?: string; config?: string }) => {
       const report = await doctorCommand({ projectPath: opts.project, configPath: opts.config });
+      if (emit(report)) return;
       for (const check of report.checks) {
         log(`${check.ok ? "[ok]   " : "[FAIL] "}${check.name}: ${check.message}`);
       }
@@ -168,6 +185,7 @@ export function buildProgram(): Command {
     .option("-o, --out <path>", "将文档写入文件。")
     .action((opts: { out?: string }) => {
       const result = agentDocsCommand({ out: opts.out });
+      if (emit({...result, content: agentsDocContent()})) return;
       if (opts.out) {
         log(`Agent docs written to ${result.target} (${result.bytes} bytes).`);
       } else {
@@ -186,6 +204,7 @@ export function buildProgram(): Command {
     .action(async (action: string, opts: { project?: string; config?: string; dryRun?: boolean; force?: boolean }) => {
       if (action === "install") {
         const result = await unityInstallCommand({ projectPath: opts.project, configPath: opts.config, dryRun: opts.dryRun, force: opts.force });
+      if (emit(result)) return;
         log(`unity install: ${result.status} (${result.fileCount} file(s))`);
         if (result.receiptPath) {
           log(`receipt: ${result.receiptPath}`);
@@ -196,6 +215,7 @@ export function buildProgram(): Command {
 
       if (action === "status") {
         const result = await unityStatusCommand({ projectPath: opts.project, configPath: opts.config });
+      if (emit(result)) return;
         log(`unity status: installed=${result.installed} modified=${result.modified}`);
         if (result.packageDir) {
           log(`package: ${result.packageDir}`);
@@ -206,6 +226,7 @@ export function buildProgram(): Command {
 
       if (action === "uninstall") {
         const result = await unityUninstallCommand({ projectPath: opts.project, configPath: opts.config, dryRun: opts.dryRun, force: opts.force });
+      if (emit(result)) return;
         log(`unity uninstall: ${result.status}`);
         if (result.status === "ModifiedRejected") {
           logError("Refusing to uninstall a modified package without --force.");
@@ -231,9 +252,10 @@ export function buildProgram(): Command {
         configPath: opts.config,
         indexPath: opts.index,
         allowRunningEditor: opts.allowRunningEditor,
-        onStdout: (line) => process.stdout.write(`[unity] ${redactor.redact(line)}`),
+        onStdout: (line) => (program.opts().json ? process.stderr : process.stdout).write(`[unity] ${redactor.redact(line)}`),
         onStderr: (line) => process.stderr.write(`[unity] ${redactor.redact(line)}`),
       });
+      if (emit(result)) return;
 
       const okCount = result.report.entries.filter((entry) => !entry.errorCode).length;
       log(`build completed: ${okCount}/${result.report.entries.length} root(s) OK. Report: ${result.reportPath}`);
@@ -277,6 +299,7 @@ export async function main(argv: string[]): Promise<void> {
     await program.parseAsync(argv);
   } catch (error) {
     if (error instanceof CliError) {
+      if (program.opts().json) { process.stdout.write(redactor.redact(JSON.stringify({ok:false,error:{code:error.code,message:error.message}}))+"\n"); process.exitCode=error.exitCode; return; }
       logError(error.message);
       if (error.details) {
         logError(error.details);
@@ -291,7 +314,7 @@ export async function main(argv: string[]): Promise<void> {
       // commander's --help / --version throw under exitOverride; they already
       // printed their output and should exit 0, not be treated as failures.
       if (code.startsWith("commander.")) {
-        process.exitCode = 0;
+        process.exitCode = ["commander.helpDisplayed", "commander.version", "commander.help"].includes(code) ? 0 : 2;
         return;
       }
 

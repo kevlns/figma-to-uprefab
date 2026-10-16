@@ -1,6 +1,6 @@
 {
   "name": "@kevlns/figma-to-uprefab",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "将 Figma 标记画板导出为源数据和图片，通过 Unity 转换器生成 UGUI 预制体。",
   "private": false,
   "publishConfig": {

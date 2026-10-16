@@ -35,6 +35,10 @@
       {
         "flags": "-h, --help",
         "description": "display help for command"
+      },
+      {
+        "flags": "--json",
+        "description": "输出结构化回执；构建进度写入 stderr。"
       }
     ],
     "commands": [

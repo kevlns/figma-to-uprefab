@@ -29,6 +29,8 @@ export 和 contract 只操作或读取暂存目录；unity install/uninstall 修
 
 业务图层名称到标识符的 translations 只放在工程配置或示例中，发布默认数据不包含实际业务内容。包提供 Agent 文档和 v-cli.plugin.json，不自动安装其他 Agent 技能。
 
+使用 `--json` 返回结构化完成回执；构建进度写入 stderr。配置错误与参数错误返回非零退出码。通过 `v-cli capability describe figma.export --json` 或 `figma.build` 读取结构化执行契约。
+
 ## 结果验证
 
 以 Unity 退出码、report.json 和完整 contract 校验共同判断构建结果。Node 编译、源数据导出成功或模拟测试不代表 Unity 预制体已正确生成。target project 必须提供 Vant.System.UI 所需的 ReferenceContainerGenerator、CachedListComponent、CachedGridComponent 和 FigmaAutoLayoutGroup。

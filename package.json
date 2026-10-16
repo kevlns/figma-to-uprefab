@@ -1,7 +1,7 @@
 {
   "name": "@kevlns/figma-to-uprefab",
-  "version": "0.1.2",
-  "description": "Figma REST -> staging-only Unity UGUI prefabs. Node orchestrates export/contract/install/build; the embedded Unity Editor package (source manifest + approximation overlay -> IR -> Prefab) is the only source->IR converter.",
+  "version": "0.1.3",
+  "description": "将 Figma 标记画板导出为源数据和图片，通过 Unity 转换器生成 UGUI 预制体。",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -33,10 +33,7 @@
   "bugs": {
     "url": "https://github.com/kevlns/figma-to-uprefab/issues"
   },
-  "author": {
-    "name": "kevlns",
-    "email": "936277610@qq.com"
-  },
+  "author": "Vant",
   "keywords": [
     "figma",
     "unity",
@@ -57,7 +54,8 @@
     "pack:guard": "node scripts/pack-guard.mjs",
     "test:package": "node scripts/test-package-install.mjs",
     "check:unity-compile": "node scripts/check-unity-compile.mjs",
-    "check": "npm run build && npm run typecheck && npm test && npm run lint && npm run pack:guard"
+    "check": "npm run docs:style && npm run build && npm run typecheck && npm test && npm run lint && npm run pack:guard",
+    "docs:style": "node scripts/check-documentation.mjs"
   },
   "dependencies": {
     "ajv": "^8.17.1",

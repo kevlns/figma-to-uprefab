@@ -3,8 +3,10 @@
   "package": "@kevlns/figma-to-uprefab",
   "command": "figma",
   "bin": "figma-to-uprefab",
-  "description": "Figma REST -> staging-only Unity UGUI prefabs. Node orchestrates export/contract/install/build; the embedded Unity Editor package (source manifest + approximation overlay -> IR -> Prefab) is the only source->IR converter.",
-  "platforms": ["win32"],
+  "description": "将 Figma 标记画板导出为源数据和图片，通过 Unity 转换器生成 UGUI 预制体。",
+  "platforms": [
+    "win32"
+  ],
   "runtime": {
     "node": ">=20",
     "os": "win32"
@@ -12,19 +14,19 @@
   "environment": [
     {
       "name": "FIGMA_ACCESS_TOKEN",
-      "description": "Primary Figma token source (file_content:read). Never stored in tracked repo files; always redacted in logs. Falls back to the per-project figmaAccessToken in the user config (~/.config/figma-to-uprefab/config.json)."
+      "description": "Figma 令牌，要求 file_content:read；优先于用户配置中的 figmaAccessToken。令牌不进入版本库，日志脱敏。"
     },
     {
       "name": "FIGMA_TO_UPREFAB_CONFIG",
-      "description": "Override the user config location (default ~/.config/figma-to-uprefab/config.json)."
+      "description": "指定用户配置路径，默认 ~/.config/figma-to-uprefab/config.json。"
     },
     {
       "name": "ProgramFiles / LOCALAPPDATA",
-      "description": "Used to discover the Unity Editor via Unity Hub (Editor/<version>/Editor/Unity.exe) when unity.editorPath is not set."
+      "description": "未指定 unity.editorPath 时，通过 Unity Hub 的 Editor/<version>/Editor/Unity.exe 定位编辑器。"
     }
   ],
   "agent": {
-    "whenToUse": "Use to convert tagged Figma frames into staging-only Unity UGUI prefabs: export source manifests + node PNGs, validate the staging contract, install the embedded Unity converter package, or run the C# converter in Unity batch. Never use for promoting generated assets into runtime paths or writing UIConfig.",
+    "whenToUse": "导出 Figma 标记画板，校验源清单与图片，在 Unity 中生成暂存 UGUI 预制体；不将产物直接转入运行时目录或写入 UIConfig。",
     "globalOptions": [
       {
         "flags": "-V, --version",
@@ -37,399 +39,430 @@
     ],
     "commands": [
       {
-        "path": ["setup"],
+        "path": [
+          "setup"
+        ],
         "usage": "figma-to-uprefab setup <project> [options]",
-        "description": "Add the project's section to the user config (~/.config/figma-to-uprefab/config.json). Does not modify the project.",
+        "description": "将工程配置写入 ~/.config/figma-to-uprefab/config.json，不修改工程。",
         "arguments": [
           {
             "name": "project",
             "required": true,
-            "description": "Path to the Unity project."
+            "description": "Unity 工程路径。"
           }
         ],
         "options": [
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "-f, --force",
-            "description": "overwrite an existing project section"
+            "description": "覆盖已有工程配置。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "User config path + project key of the created/existing section."
+          "description": "返回用户配置路径及工程键。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error"
+          "0": "成功。",
+          "1": "失败。"
         },
         "safety": [
-          "writes only the user config file; never touches Unity assets"
+          "只写入用户配置，不修改 Unity 资源。"
         ]
       },
       {
-        "path": ["config", "init"],
+        "path": [
+          "config",
+          "init"
+        ],
         "usage": "figma-to-uprefab config init [options]",
-        "description": "Add a project section (defaults, uiSystem UGUI, no token field) to the user config.",
+        "description": "创建工程配置，默认 uiSystem 为 UGUI，不写入令牌字段。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path (defaults to cwd)"
+            "description": "Unity 工程路径，默认当前目录。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "-f, --force",
-            "description": "overwrite an existing project section"
+            "description": "覆盖已有工程配置。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "User config path + project key."
+          "description": "返回用户配置路径和工程键。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error"
+          "0": "成功。",
+          "1": "失败。"
         },
         "safety": [
-          "writes only the user config file"
+          "只写入用户配置。"
         ]
       },
       {
-        "path": ["config", "validate"],
+        "path": [
+          "config",
+          "validate"
+        ],
         "usage": "figma-to-uprefab config validate [options]",
-        "description": "Validate the user config project section against the user-config schema, token presence (env > config), and uiSystem (NGUI fails closed).",
+        "description": "按 schema 校验工程配置、令牌和 uiSystem；环境变量令牌优先，非 UGUI 值拒绝执行。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Config validity + issue list (legacy files, schema, missing section, missing token, NGUI)."
+          "description": "返回配置有效性及结构、配置段、令牌和界面系统问题。"
         },
         "exitCodes": {
-          "0": "valid",
-          "1": "invalid"
+          "0": "有效。",
+          "1": "无效。"
         },
         "safety": [
-          "read-only",
-          "never prints a token"
+          "只读。",
+          "不输出令牌。"
         ]
       },
       {
-        "path": ["config", "migrate"],
+        "path": [
+          "config",
+          "migrate"
+        ],
         "usage": "figma-to-uprefab config migrate [options]",
-        "description": "Fold legacy figma-to-uprefab.json + figma-to-uprefab.local.json into the user config and rename them to *.migrated. Never copies a token.",
+        "description": "将指定工程配置转换到用户配置文件，并重命名来源文件为 *.migrated；不复制令牌。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "-f, --force",
-            "description": "overwrite an existing project section"
+            "description": "覆盖已有工程配置。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Project key migrated + list of renamed legacy files."
+          "description": "返回工程键与已重命名的来源文件列表。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error (nothing to migrate, existing section without --force, invalid merge)"
+          "0": "成功。",
+          "1": "转换失败：无可转换数据、未明确覆盖现有配置或合并结果无效。"
         },
         "safety": [
-          "writes only the user config file; renames legacy files in place",
-          "never copies figmaAccessToken out of legacy files"
+          "写入用户配置，并在原位置重命名来源配置文件。",
+          "不从来源配置复制 figmaAccessToken。"
         ]
       },
       {
-        "path": ["export"],
+        "path": [
+          "export"
+        ],
         "usage": "figma-to-uprefab export <fileKey> [options]",
-        "description": "Figma REST -> source manifests + node-scoped PNGs + root index under staging. No Unity side effects.",
+        "description": "从 Figma REST 导出源清单、节点 PNG 和根索引，只写入暂存目录。",
         "arguments": [
           {
             "name": "fileKey",
             "required": true,
-            "description": "Figma file key."
+            "description": "Figma 文件标识。"
           }
         ],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "--discovery-document <path>",
-            "description": "test hook: captured GET /v1/files/:key payload"
+            "description": "测试输入：已捕获的 GET /v1/files/:key 响应。"
           },
           {
             "flags": "--node-documents <dir>",
-            "description": "test hook: read node documents from <safe-id>.json files"
+            "description": "测试输入：从 <safe-id>.json 读取节点文档。"
           },
           {
             "flags": "--discovery-only",
-            "description": "discover roots without fetching node docs or images"
+            "description": "只发现根节点，不请求节点文档或图片。"
           },
           {
             "flags": "--image-scale <n>",
-            "description": "image export scale (0.01..4.0)"
+            "description": "图片导出倍率，范围 0.01–4.0。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Discovered root count + staging root index path."
+          "description": "返回发现的根节点数量和根索引路径。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error (token missing, REST failure, discovery violation)"
+          "0": "成功。",
+          "1": "令牌缺失、请求失败或节点发现不符合要求。"
         },
         "safety": [
-          "writes only under the configured _Staging root",
-          "token never logged, never written into manifests",
-          "timeout + bounded 429/5xx retry; atomic file publish; path-traversal rejection"
+          "只写入配置的暂存根目录。",
+          "令牌不进入日志或源清单。",
+          "请求有超时和有界 429/5xx 重试；文件原子写入，拒绝路径越界。"
         ]
       },
       {
-        "path": ["contract"],
+        "path": [
+          "contract"
+        ],
         "usage": "figma-to-uprefab contract [options]",
-        "description": "Validate the canonical staging layout against schemas + path invariants. Read-only.",
+        "description": "只读校验暂存目录、schema 和路径约束。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "--index <path>",
-            "description": "override root index path"
+            "description": "指定根索引路径。"
           },
           {
             "flags": "--allow-missing-ir",
-            "description": "report missing IR as warning instead of error"
+            "description": "将 IR 缺失报告为警告。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Contract validity + issue list (CON_* codes)."
+          "description": "返回契约有效性和 CON_* 问题列表。"
         },
         "exitCodes": {
-          "0": "valid",
-          "1": "invalid"
+          "0": "有效。",
+          "1": "无效。"
         },
         "safety": [
-          "read-only; no Unity side effects"
+          "只读，不修改 Unity 工程。"
         ]
       },
       {
-        "path": ["doctor"],
+        "path": [
+          "doctor"
+        ],
         "usage": "figma-to-uprefab doctor [options]",
-        "description": "Read-only diagnostics of config, staging, Unity install, editor, and token presence.",
+        "description": "只读检查配置、暂存数据、Unity 转换器、编辑器与令牌状态。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Per-check [ok]/[FAIL] lines with token presence (masked only)."
+          "description": "逐项返回 ok/FAIL 检查结果；令牌只显示是否存在。"
         },
         "exitCodes": {
-          "0": "all checks ok",
-          "1": "at least one check failed"
+          "0": "所有检查通过。",
+          "1": "至少一项检查失败。"
         },
         "safety": [
-          "read-only",
-          "masks the token; never prints it"
+          "只读。",
+          "令牌脱敏，不输出其内容。"
         ]
       },
       {
-        "path": ["agent", "docs"],
+        "path": [
+          "agent",
+          "docs"
+        ],
         "usage": "figma-to-uprefab agent docs [options]",
-        "description": "Print or export the canonical AGENTS.md agent spec. Does not install skills.",
+        "description": "输出或导出随包 AGENTS.md，不安装技能。",
         "arguments": [],
         "options": [
           {
             "flags": "-o, --out <path>",
-            "description": "write docs to a file instead of stdout"
+            "description": "将文档写入文件。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "AGENTS.md content or written path."
+          "description": "返回 AGENTS.md 内容或文件路径。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error"
+          "0": "成功。",
+          "1": "失败。"
         },
         "safety": [
-          "no skills installed; documentation only"
+          "只提供文档，不安装技能。"
         ]
       },
       {
-        "path": ["unity", "install"],
+        "path": [
+          "unity",
+          "install"
+        ],
         "usage": "figma-to-uprefab unity install [options]",
-        "description": "Install the embedded com.kevlns.figma-to-uprefab UPM package into the project. Explicit, dry-run, hash receipt, modification detection, atomic with rollback.",
+        "description": "将 com.kevlns.figma-to-uprefab 安装到工程；支持预演、哈希回执、改动检测、原子替换与回滚。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "--dry-run",
-            "description": "validate + preview without writing"
+            "description": "校验并预演，不写入文件。"
           },
           {
             "flags": "-f, --force",
-            "description": "override modification detection / overwrite existing"
+            "description": "明确覆盖已有安装或修改检测结果。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Status, package dir, file count, receipt path."
+          "description": "返回状态、包目录、文件数量及回执路径。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error (modified package without --force, invalid project)"
+          "0": "成功。",
+          "1": "工程无效，或已修改的安装未获明确覆盖授权。"
         },
         "safety": [
-          "writes only <project>/Packages/com.kevlns.figma-to-uprefab + Library/figma-to-uprefab receipt",
-          "receipt records exact tree hashes; modification fails closed",
-          "staged temp + rename; previous install backed up and restored on failure"
+          "只写入 <project>/Packages/com.kevlns.figma-to-uprefab 和 Library/figma-to-uprefab 回执。",
+          "回执记录完整文件树哈希；检测到改动时拒绝执行。",
+          "先暂存再替换；备份已有安装，失败时恢复。"
         ]
       },
       {
-        "path": ["unity", "status"],
+        "path": [
+          "unity",
+          "status"
+        ],
         "usage": "figma-to-uprefab unity status [options]",
-        "description": "Report whether the embedded package is installed and whether it was modified since its receipt.",
+        "description": "检查转换器是否安装、文件是否与回执一致。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "installed/modified booleans + package path."
+          "description": "返回 installed、modified 和包路径。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error"
+          "0": "成功。",
+          "1": "失败。"
         },
         "safety": [
-          "read-only"
+          "只读。"
         ]
       },
       {
-        "path": ["unity", "uninstall"],
+        "path": [
+          "unity",
+          "uninstall"
+        ],
         "usage": "figma-to-uprefab unity uninstall [options]",
-        "description": "Remove the embedded package. Refuses (fail-closed) if the installed tree was modified unless --force.",
+        "description": "移除转换器；安装内容被修改时拒绝执行，除非明确指定 --force。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "--dry-run",
-            "description": "preview without writing"
+            "description": "预演，不写入文件。"
           },
           {
             "flags": "-f, --force",
-            "description": "remove a modified install"
+            "description": "移除已修改的安装内容。"
           }
         ],
         "output": {
           "format": "text",
-          "description": "Uninstall status (Uninstalled | NotInstalled | DryRun | ModifiedRejected)."
+          "description": "返回 Uninstalled、NotInstalled、DryRun 或 ModifiedRejected。"
         },
         "exitCodes": {
-          "0": "success",
-          "1": "error / ModifiedRejected"
+          "0": "成功。",
+          "1": "失败，可能返回 ModifiedRejected。"
         },
         "safety": [
-          "fail-closed on modified install without --force"
+          "安装内容被修改时拒绝卸载，除非明确指定 --force。"
         ]
       },
       {
-        "path": ["build"],
+        "path": [
+          "build"
+        ],
         "usage": "figma-to-uprefab build [options]",
-        "description": "Run the C# converter in Unity batch mode (request/report protocol). Fails closed when the package is not installed, the receipt is missing, or Unity is running.",
+        "description": "通过 Unity 批处理运行 C# 转换器；未安装、回执缺失或编辑器占用时拒绝执行。",
         "arguments": [],
         "options": [
           {
             "flags": "--project <path>",
-            "description": "Unity project path"
+            "description": "Unity 工程路径。"
           },
           {
             "flags": "--config <path>",
-            "description": "explicit user config path"
+            "description": "用户配置的明确路径。"
           },
           {
             "flags": "--index <path>",
-            "description": "override root index path"
+            "description": "指定根索引路径。"
           },
           {
             "flags": "--allow-running-editor",
-            "description": "proceed even if Unity is running"
+            "description": "明确允许编辑器运行时继续操作。"
           }
         ],
         "output": {
           "format": "json",
-          "description": "Build report: per-root errorCode/errorMessage, conversion, build summary. Report path printed."
+          "description": "返回报告路径及各根节点的 errorCode、errorMessage、转换和构建结果。"
         },
         "exitCodes": {
-          "0": "all roots built",
-          "1": "error (missing install/receipt, Unity running, or any root failed)"
+          "0": "所有根节点构建完成。",
+          "1": "转换器或回执缺失、编辑器占用或根节点构建失败。"
         },
         "safety": [
-          "writes only Library/figma-to-uprefab/request.json + report.json and staging outputs",
-          "never fabricates a compile result; outcome comes from Unity exit code + report JSON"
+          "只写入 Library/figma-to-uprefab 下的请求、报告与暂存产物。",
+          "构建结果必须来自 Unity 退出码和报告 JSON。"
         ]
       }
     ]

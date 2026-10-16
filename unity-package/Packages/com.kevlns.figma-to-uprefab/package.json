@@ -1,13 +1,12 @@
 {
   "name": "com.kevlns.figma-to-uprefab",
   "version": "0.1.1",
-  "displayName": "Figma To Uprefab (Editor)",
-  "description": "Unity Editor converter: source manifest + approximation overlay -> IR -> staging UGUI prefab skeleton. Companion to the @kevlns/figma-to-uprefab Node CLI. Requires the Vant Framework (Vant.Framework assembly provides ReferenceContainerGenerator, CachedList/GridComponent, FigmaAutoLayoutGroup).",
+  "displayName": "Vant Figma 预制体转换器",
+  "description": "在 Unity Editor 中将 Figma 源清单和近似配置转换为 IR 与暂存 UGUI 预制体，需要 Vant.Framework。",
   "unity": "2022.3",
   "documentationUrl": "https://github.com/kevlns/figma-to-uprefab#readme",
   "author": {
-    "name": "kevlns",
-    "email": "936277610@qq.com"
+    "name": "Vant"
   },
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.1"

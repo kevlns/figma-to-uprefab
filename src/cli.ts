@@ -40,8 +40,8 @@ export function buildProgram(): Command {
   program
     .command("setup <project>")
     .description("Add the project's section to the user config (~/.config/figma-to-uprefab/config.json).")
-    .option("--config <path>", "explicit user config path")
-    .option("-f, --force", "overwrite an existing project section")
+    .option("--config <path>", "用户配置的明确路径。")
+    .option("-f, --force", "覆盖已有工程配置。")
     .action(async (project: string, opts: { config?: string; force?: boolean }) => {
       const result = setupCommand({ projectPath: project, configPath: opts.config, force: opts.force });
       log(`User config project section ${result.created ? "created" : "already exists"} [${result.projectKey}]: ${result.configPath}`);
@@ -51,8 +51,8 @@ export function buildProgram(): Command {
     .command("config")
     .description("Manage the user config (~/.config/figma-to-uprefab/config.json) and its per-project sections.")
     .argument("<action>", "init | validate | migrate")
-    .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit user config path")
+    .option("--project <path>", "Unity 工程路径。")
+    .option("--config <path>", "用户配置的明确路径。")
     .option("-f, --force", "overwrite an existing project section (init/migrate)")
     .action(async (action: string, opts: { project?: string; config?: string; force?: boolean }) => {
       if (action === "init") {
@@ -94,12 +94,12 @@ export function buildProgram(): Command {
   program
     .command("export <fileKey>")
     .description("Export Figma source manifests + node PNGs + root index into staging (no Unity side effects).")
-    .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit user config path")
-    .option("--discovery-document <path>", "test hook: captured GET /v1/files/:key payload")
-    .option("--node-documents <dir>", "test hook: read node documents from <safe-id>.json files")
+    .option("--project <path>", "Unity 工程路径。")
+    .option("--config <path>", "用户配置的明确路径。")
+    .option("--discovery-document <path>", "测试输入：已捕获的 GET /v1/files/:key 响应。")
+    .option("--node-documents <dir>", "测试输入：从 <safe-id>.json 读取节点文档。")
     .option("--discovery-only", "discover and validate roots without fetching node docs or images")
-    .option("--image-scale <n>", "image export scale (0.01..4.0)", parseFloat)
+    .option("--image-scale <n>", "图片导出倍率，范围 0.01–4.0。", parseFloat)
     .action(async (fileKey: string, opts: { project?: string; config?: string; discoveryDocument?: string; nodeDocuments?: string; discoveryOnly?: boolean; imageScale?: number }) => {
       const result = await exportCommand({
         fileKey,
@@ -120,9 +120,9 @@ export function buildProgram(): Command {
   program
     .command("contract")
     .description("Validate the canonical staging layout against schemas + invariants (read-only).")
-    .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit user config path")
-    .option("--index <path>", "override root index path")
+    .option("--project <path>", "Unity 工程路径。")
+    .option("--config <path>", "用户配置的明确路径。")
+    .option("--index <path>", "指定根索引路径。")
     .option("--allow-missing-ir", "report missing IR as a warning instead of error")
     .action((opts: { project?: string; config?: string; index?: string; allowMissingIr?: boolean }) => {
       const result = contractCommand({
@@ -147,8 +147,8 @@ export function buildProgram(): Command {
   program
     .command("doctor")
     .description("Read-only diagnostics of config, staging, Unity, and token presence.")
-    .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit user config path")
+    .option("--project <path>", "Unity 工程路径。")
+    .option("--config <path>", "用户配置的明确路径。")
     .action(async (opts: { project?: string; config?: string }) => {
       const report = await doctorCommand({ projectPath: opts.project, configPath: opts.config });
       for (const check of report.checks) {
@@ -165,7 +165,7 @@ export function buildProgram(): Command {
     .description("Agent documentation (AGENTS.md is the canonical agent spec).")
     .command("docs")
     .description("Print or export the canonical AGENTS.md agent spec.")
-    .option("-o, --out <path>", "write docs to a file instead of stdout")
+    .option("-o, --out <path>", "将文档写入文件。")
     .action((opts: { out?: string }) => {
       const result = agentDocsCommand({ out: opts.out });
       if (opts.out) {
@@ -179,10 +179,10 @@ export function buildProgram(): Command {
     .command("unity")
     .description("Manage the embedded com.kevlns.figma-to-uprefab UPM package in the project.")
     .argument("<action>", "install | status | uninstall")
-    .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit user config path")
+    .option("--project <path>", "Unity 工程路径。")
+    .option("--config <path>", "用户配置的明确路径。")
     .option("--dry-run", "validate + preview without writing to the project")
-    .option("-f, --force", "override modification detection / overwrite existing")
+    .option("-f, --force", "明确覆盖已有安装或修改检测结果。")
     .action(async (action: string, opts: { project?: string; config?: string; dryRun?: boolean; force?: boolean }) => {
       if (action === "install") {
         const result = await unityInstallCommand({ projectPath: opts.project, configPath: opts.config, dryRun: opts.dryRun, force: opts.force });
@@ -221,10 +221,10 @@ export function buildProgram(): Command {
   program
     .command("build")
     .description("Run the C# converter in Unity batch mode (request/report protocol).")
-    .option("--project <path>", "Unity project path")
-    .option("--config <path>", "explicit user config path")
-    .option("--index <path>", "override root index path")
-    .option("--allow-running-editor", "proceed even if Unity is running")
+    .option("--project <path>", "Unity 工程路径。")
+    .option("--config <path>", "用户配置的明确路径。")
+    .option("--index <path>", "指定根索引路径。")
+    .option("--allow-running-editor", "明确允许编辑器运行时继续操作。")
     .action(async (opts: { project?: string; config?: string; index?: string; allowRunningEditor?: boolean }) => {
       const result = await buildCommand({
         projectPath: opts.project,

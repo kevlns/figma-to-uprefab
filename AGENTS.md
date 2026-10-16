@@ -1,108 +1,42 @@
-# AGENTS.md — @kevlns/figma-to-uprefab
+# Vant Figma 预制体工具 Agent 规范
 
-> This file is the canonical Agent specification. Agents operating on
-> this package MUST follow it. `figma-to-uprefab agent docs` prints this file.
+## 定位
 
-## 1. What this package does
+将 Figma 标记画板转换为 Unity UGUI 暂存预制体。Node 负责导出与调度，Unity C# 负责源清单到 IR、IR 到预制体的转换。本文件由 `figma-to-uprefab agent docs` 提供。
 
-`@kevlns/figma-to-uprefab` converts tagged Figma frames into staging-only Unity
-UGUI prefabs. Architecture is split by a hard boundary:
+## 调用流程
 
-- **Node** (this CLI): Figma REST -> source manifest + node-scoped PNGs; user
-  config/schema/contract validation; approximation overlay validation; Unity
-  install & build orchestration.
-- **C#** (embedded UPM package `com.kevlns.figma-to-uprefab`): the ONLY
-  source->IR->Prefab converter. Node never converts source to IR.
+1. 使用 `config init --project <工程目录>` 创建配置，核实 `FIGMA_ACCESS_TOKEN` 或工程 `figmaAccessToken`，运行 `config validate` 与 `doctor`。
+2. 在目标工程安装 Unity 转换器，确认 Vant.Framework.dll 可用。
+3. `export <fileKey>` 生成源清单和节点图片；`contract --allow-missing-ir` 校验源数据。
+4. `build` 在 Unity 中生成 IR 与预制体；再次 `contract` 检查完整产物。
 
-## 2. Hard constraints
+## 调用规范
 
-1. **No Node source->IR converter.** Node writes source manifests + PNGs + the
-   root index only. IR and prefabs are produced by the C# converter via
-   `figma-to-uprefab build` (request/report protocol).
-2. **Source manifest is immutable by overlays.** An approximation overlay never
-   rewrites `<name>.source.json`. It is merged by the C# converter into
-   `IR.layout.approximation` at build time.
-3. **Overlay contract**: schemaVersion 1, keyed by root + `figmaNodeId`, only
-   the approximation whitelist fields (see `schemas/approximation-overlay.schema.json`),
-   and every entry MUST carry a `reason`.
-4. **Canonical output** (staging only):
-   ```
-   <stagingRoot>/figma-roots.index.json
-   <stagingRoot>/<PrefabName>/
-     <PrefabName>.prefab            # root prefab
-     <PrefabName><Container><Cell>.prefab   # item prefabs (C#)
-     Assets/                        # node-scoped PNGs
-     Meta/
-       <PrefabName>.source.json
-       <PrefabName>.ir.json
-       <PrefabName>.approximation.json  # optional overlay
-   ```
-5. **Side effects**: `export` and `contract` have NO Unity project side effects.
-   Only `unity install` modifies the project (`config init` writes the user
-   config, not the project).
-6. **Tokens**: resolved from `FIGMA_ACCESS_TOKEN` (preferred) or the
-   per-project `figmaAccessToken` inside the user config
-   `~/.config/figma-to-uprefab/config.json` (projects map keyed by normalized
-   absolute project path). Never stored in tracked repo files, never logged
-   (registered with the redactor on startup), never copied into
-   source/IR/PNG/reports or the build-time resolved-config.json.
+### 数据和写入
 
-## 3. Commands
+Node 不执行源数据到 IR 的转换。近似配置为 schemaVersion 1，以根节点和 figmaNodeId 定位，字段受 schema 限定，每项包含 reason。转换器合并到 IR.layout.approximation，不修改源清单。产物目录见 README，构建请求与报告见 docs/build-protocol.md。
 
-| Command | Purpose | Side effects |
-| --- | --- | --- |
-| `setup <project>` | add the given project's section to the user config | writes user config (not the project) |
-| `config init` | add a project section (defaults, `uiSystem` UGUI) to the user config | writes user config |
-| `config validate` | validate the user config project section, token presence, `uiSystem` | none |
-| `config migrate` | fold legacy `figma-to-uprefab.json`/`.local.json` into the user config (renames them to `*.migrated`) | writes user config, renames legacy files |
-| `export <fileKey>` | source manifests + PNGs + root index | writes staging only |
-| `contract` | validate staging layout vs schemas + invariants | none |
-| `doctor` | read-only diagnostics | none |
-| `agent docs` | print/export AGENTS.md | none |
-| `unity install/status/uninstall` | manage embedded UPM package | install/uninstall write project |
-| `build` | run C# converter in Unity batch (request/report) | runs Unity, writes IR+prefabs to staging |
+export 和 contract 只操作或读取暂存目录；unity install/uninstall 修改工程内的转换器包。config init 写入用户配置。安装支持预演、哈希回执、改动检测、原子替换与回滚；回执位于 Library/figma-to-uprefab/install-receipt.json。构建所需路径必须在工具规定的工程范围内，路径越界返回 PAT_TRAVERSAL。
 
-## 4. Error routing
+### 配置与凭据
 
-Errors are machine-readable `CODE` strings. Group prefixes:
-`CFG_*` config, `SCH_*` schema, `TOK_*` token, `PAT_*` path safety,
-`RST_*` Figma REST, `DSC_*` discovery, `EXP_*` export, `LYT_*` layout/text,
-`OVL_*` overlay, `CON_*` contract, `UNI_*` Unity install/status,
-`BLD_*` build, `DOC_*` agent docs. Agents should surface the code + message verbatim.
+配置为 ~/.config/figma-to-uprefab/config.json，可通过 FIGMA_TO_UPREFAB_CONFIG 指定。projects 以规范化工程绝对路径为键。FIGMA_ACCESS_TOKEN 优先于配置中的 figmaAccessToken；凭据不进入版本库、source、IR、PNG、报告或 resolved-config.json，日志必须脱敏。uiSystem 使用 UGUI，其他值返回 CFG_UISYSTEM_UNSUPPORTED。
 
-User-config `CFG_*` codes: `CFG_USER_FILE_MISSING`, `CFG_USER_JSON_INVALID`,
-`CFG_USER_SCHEMA_INVALID`, `CFG_LEGACY_CONFIG_FOUND`,
-`CFG_PROJECT_CONFIG_MISSING`, `CFG_PROJECT_CONFIG_EXISTS`,
-`CFG_MIGRATE_NOTHING_TO_MIGRATE`, `CFG_MIGRATE_SOURCE_INVALID`,
-`CFG_MIGRATE_RESULT_INVALID`, `CFG_ACTION_UNKNOWN`, and
-`CFG_UISYSTEM_UNSUPPORTED` (fail-closed for non-UGUI: rejected by Node before
-Unity batch runs, and again by the C# converter).
+### 工程与错误
 
-## 5. Security & safety
+构建要求转换器已安装、回执有效且 Unity Editor 未占用工程；显式 --allow-running-editor 才改变占用检查。报告 CFG_*（配置）、SCH_*（结构）、TOK_*（令牌）、PAT_*（路径）、RST_*（Figma 请求）、DSC_*（节点发现）、EXP_*（导出）、LYT_*（布局）、OVL_*（近似配置）、CON_*（契约）、UNI_*（Unity 包）和 BLD_*（构建）错误的原始代码与信息。
 
-- **Path safety**: all writes go through `assertInsideBase`/`safeJoin`; a path
-  escaping its base is `PAT_TRAVERSAL` and is rejected.
-- **Token redaction**: `Redactor` masks registered secrets before any log line.
-  Never echo `figmaAccessToken`.
-- **Unity install**: explicit, dry-run supported, hash receipt in
-  `<project>/Library/figma-to-uprefab/install-receipt.json`, modification
-  detection fails closed, atomic install with rollback.
-- **Build fails closed** when the Unity package is not installed, when the
-  receipt is missing, or when Unity is running (unless `--allow-running-editor`).
-- **Build handoff**: build writes a token-free resolved-config.json into
-  `Library/figma-to-uprefab/` for the C# converter (which reads `uiSystem` and
-  fails closed with `CFG_UISYSTEM_UNSUPPORTED` for non-UGUI).
-- **Do not fabricate Unity compile results.** A build outcome is only accepted
-  from Unity's exit code + the report JSON.
+业务图层名称到标识符的 translations 只放在工程配置或示例中，发布默认数据不包含实际业务内容。包提供 Agent 文档和 v-cli.plugin.json，不自动安装其他 Agent 技能。
 
-## 6. Translations
+## 结果验证
 
-Business `translations` (Chinese layer names -> English identifiers) may only
-appear in `examples/` and `tests/fixtures/`. The shipped defaults and fixtures
-carry no real business data.
+以 Unity 退出码、report.json 和完整 contract 校验共同判断构建结果。Node 编译、源数据导出成功或模拟测试不代表 Unity 预制体已正确生成。target project 必须提供 Vant.System.UI 所需的 ReferenceContainerGenerator、CachedListComponent、CachedGridComponent 和 FigmaAutoLayoutGroup。
 
-## 7. Skills
+## 参考资料
 
-This package does NOT install skills into any agent framework. It provides
-agent documentation only (`agent docs`). `v-cli.plugin.json` is shipped for
-v-cli integration but v-cli itself is never modified.
+[使用说明](README.md) · [构建协议](docs/build-protocol.md) · [文档规范](docs/documentation.md) · schemas/
+
+## 许可与版权
+
+MIT。Copyright © 2026 Vant。Figma、Unity 及第三方组件适用各自许可。

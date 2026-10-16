@@ -1,112 +1,55 @@
-# @kevlns/figma-to-uprefab
+# Vant Figma 预制体工具
 
-Figma REST -> staging-only Unity UGUI prefabs, with a hard Node/C# split.
+`@kevlns/figma-to-uprefab`
 
-- **Node** CLI: Figma export to source manifests + node-scoped PNGs, schema
-  validation, approximation overlay validation, contract checks, Unity package
-  install/status/uninstall, and build orchestration.
-- **Embedded Unity package** `com.kevlns.figma-to-uprefab` (C#): the *only*
-  converter from source manifest (+ optional approximation overlay) to IR to
-  Prefab.
+## 功能
 
-## Requirements
+将 Figma 标记画板导出为源数据和图片，通过 Unity 转换器生成 UGUI 预制体。
 
-- Node >= 20
-- Windows (Unity install/status/build are Windows-first in this milestone)
-- Unity 2022.3 project (the C# payload targets 2022.3)
-- The **Vant Framework** runtime assembly (`Vant.Framework.dll`) in the target
-  project: the embedded converter references `Vant.System.UI`
-  (`ReferenceContainerGenerator`, `CachedListComponent`/`CachedGridComponent`,
-  `FigmaAutoLayoutGroup`) to author runtime-faithful prefab skeletons. Without
-  it the C# package will not compile in the project.
+## 环境要求
 
-## Install
+Node.js 20 及以上、Windows、Unity 2022.3；目标工程需提供 Vant.Framework.dll 中的 Vant.System.UI。
 
-```bash
-npm i -g @kevlns/figma-to-uprefab
-# or run from source
-npm install && npm run build
+## 安装
+
+```sh
+npm install -g @kevlns/figma-to-uprefab
 ```
 
-Export requires a Figma access token — `FIGMA_ACCESS_TOKEN` (preferred) or the
-user config (below). Tokens never go into tracked repo files:
+## 快速开始
 
-```bash
-export FIGMA_ACCESS_TOKEN=<your-token>   # preferred
-# or: edit ~/.config/figma-to-uprefab/config.json and set figmaAccessToken
-#     inside your project's section (see "User config" below)
+```sh
+figma-to-uprefab config init --project <工程目录>
+figma-to-uprefab doctor --project <工程目录>
 ```
 
-## Quick start
+## 使用说明
 
-```bash
-# 1. Register the project in the user config (see "User config" below)
-figma-to-uprefab config init --project C:/path/to/UnityProject
+### 工程配置
 
-# 2. Install the embedded Unity converter package (modifies the project)
-figma-to-uprefab unity install --project C:/path/to/UnityProject
-
-# 3. Export a Figma file into staging (no Unity side effects)
-figma-to-uprefab export <fileKey> --project C:/path/to/UnityProject
-
-# 4. Validate exported source and assets; build has not generated IR yet
-figma-to-uprefab contract --project C:/path/to/UnityProject --allow-missing-ir
-
-# 5. Run the C# converter in Unity batch (source + overlay -> IR -> prefabs)
-figma-to-uprefab build --project C:/path/to/UnityProject
-
-# 6. Validate the complete source/IR contract after build
-figma-to-uprefab contract --project C:/path/to/UnityProject
-```
-
-## User config
-
-One user-level file: `~/.config/figma-to-uprefab/config.json` (override the
-location with the `FIGMA_TO_UPREFAB_CONFIG` env var). It holds a section per
-Unity project, keyed by normalized absolute project path. Full contract:
-`schemas/user-config.schema.json`.
+配置文件为 `~/.config/figma-to-uprefab/config.json`，可通过 `FIGMA_TO_UPREFAB_CONFIG` 指定路径。`projects` 以规范化工程绝对路径为键。`FIGMA_ACCESS_TOKEN` 优先于工程配置中的 `figmaAccessToken`；令牌不进入版本库、源数据、图片、IR 或构建报告。
 
 ```json
-{
-  "schemaVersion": 1,
-  "projects": {
-    "c:/path/to/unityproject": {
-      "figmaAccessToken": "<your-token>",
-      "uiSystem": "UGUI"
-    },
-    "c:/path/to/other-project": {
-      "uiSystem": "UGUI",
-      "staging": { "root": "Assets/Custom/_Staging" },
-      "unity": { "editorPath": "C:/Program Files/Unity/Hub/Editor/2022.3.59f1c1/Editor/Unity.exe" }
-    }
-  }
-}
+{"schemaVersion":1,"projects":{"c:/projects/game":{"uiSystem":"UGUI"}}}
 ```
 
-- `figmaAccessToken`: optional per-project token; `FIGMA_ACCESS_TOKEN` env
-  takes precedence.
-- `uiSystem`: `UGUI` (default) or `NGUI`. NGUI fails closed in both Node and
-  the C# converter (`CFG_UISYSTEM_UNSUPPORTED`) in this milestone.
-- Legacy `figma-to-uprefab.json` / `figma-to-uprefab.local.json` files fail
-  closed (`CFG_LEGACY_CONFIG_FOUND`) until you run
-  `figma-to-uprefab config migrate --project <path>`.
+界面系统使用 `UGUI`。其他值返回 `CFG_UISYSTEM_UNSUPPORTED`。完整字段见 `schemas/user-config.schema.json`。
 
-## Commands
+### 导出与构建
 
-| Command | Description |
-| --- | --- |
-| `setup <project>` | add the project's section to the user config (alias of `config init`) |
-| `config init\|validate\|migrate` | manage the user config and its per-project sections |
-| `export <fileKey>` | Figma REST -> source manifests + PNGs + root index |
-| `contract` | validate staging layout vs schemas + invariants |
-| `doctor` | read-only diagnostics |
-| `agent docs` | print/export the canonical AGENTS.md |
-| `unity install\|status\|uninstall` | manage the embedded UPM package (dry-run, receipt, modification detection) |
-| `build` | run the C# converter in Unity batch (request/report) |
-
-## Canonical staging layout
-
+```sh
+figma-to-uprefab unity install --project <工程目录>
+figma-to-uprefab export <fileKey> --project <工程目录>
+figma-to-uprefab contract --project <工程目录> --allow-missing-ir
+figma-to-uprefab build --project <工程目录>
+figma-to-uprefab contract --project <工程目录>
 ```
+
+Node 导出源清单、节点 PNG 和根索引，执行配置与契约校验。Unity C# 转换器负责源数据到 IR、IR 到预制体的转换。`export` 和 `contract` 不修改 Unity 工程；`unity install` 安装转换器，`build` 运行 Unity 并写入暂存产物。
+
+### 输出结构
+
+```text
 <stagingRoot>/figma-roots.index.json
 <stagingRoot>/<PrefabName>/
   <PrefabName>.prefab
@@ -115,31 +58,29 @@ Unity project, keyed by normalized absolute project path. Full contract:
   Meta/
     <PrefabName>.source.json
     <PrefabName>.ir.json
-    <PrefabName>.approximation.json   # optional overlay
+    <PrefabName>.approximation.json
 ```
 
-## Approximation overlays
+近似配置使用 `schemaVersion: 1`，通过根节点和 `figmaNodeId` 定位；字段受 `schemas/approximation-overlay.schema.json` 限定，每项必须给出 `reason`。转换器将它合并到 `IR.layout.approximation`，不改写源清单。
 
-Overlays are independent, schemaVersion-1 documents keyed by root +
-`figmaNodeId`. They only allow whitelisted approximation fields and every entry
-requires a `reason`. The C# converter merges them into `IR.layout.approximation`
-and never rewrites the source manifest. See
-`schemas/approximation-overlay.schema.json`.
+### 诊断与写入边界
 
-## Security
+`doctor` 只读检查环境。安装支持预演、哈希回执、改动检测和失败回滚。路径越界返回 `PAT_TRAVERSAL`；令牌始终脱敏。构建结果以 Unity 退出码和报告 JSON 为准，不能以 Node 构建通过代替 Unity 验证。
 
-- Tokens come from `FIGMA_ACCESS_TOKEN` (preferred) or the user config's
-  per-project `figmaAccessToken`; never from tracked repo files; always
-  redacted in logs.
-- All writes are path-safety-checked and published atomically.
-- Unity installs are dry-run-able, receipted, modification-detecting, and
-  atomic with rollback.
+## 开发与验证
 
-## Documentation
+```sh
+npm ci
+npm run check
+npm run test:package
+```
 
-See [AGENTS.md](./AGENTS.md) (canonical agent spec), `docs/`, and the JSON
-Schemas under `schemas/`.
+命令返回、结构校验、模拟测试与外部平台实际运行分别核验。发布版本和依赖以随包 `package.json` 为准。
 
-## License
+## 文档
 
-MIT
+[Agent 调用规范](AGENTS.md) · [文档规范](docs/documentation.md) · [Build request/report protocol](docs/build-protocol.md)
+
+## 许可与版权
+
+本工具采用 [MIT 许可](LICENSE)。Copyright © 2026 Vant。Vant 为工具集品牌；Figma、Unity、Steam、微信及其组件归各自权利人所有，第三方组件适用各自许可。

@@ -52,4 +52,4 @@ uiSystem 使用 UGUI，其他值在 Node 和 C# 两侧均返回 CFG_UISYSTEM_UNS
 
 ## 参考资料
 
-[使用说明](../README.md) · [Agent 规范](../AGENTS.md) · [文档规范](documentation.md)
+[使用说明](../README.md) · [Agent 规范](../skills/figma/SKILL.md) · [文档规范](documentation.md)

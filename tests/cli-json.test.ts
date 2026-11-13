@@ -15,7 +15,7 @@ describe("CLI 结构化回执", () => {
       expect(JSON.parse(init.stdout).configPath).toBe(join(root, "config.json"));
       const docs = call(["agent", "docs", "--json"]);
       expect(docs.status).toBe(0);
-      expect(JSON.parse(docs.stdout).content).toContain("## 定位");
+      expect(JSON.parse(docs.stdout).content).toContain("name: figma");
       expect(call(["config", "init", "--unknown"]).status).not.toBe(0);
       expect(call(["--help"]).status).toBe(0);
     } finally { rmSync(root, { recursive: true, force: true }); }

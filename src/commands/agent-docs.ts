@@ -1,10 +1,10 @@
 /**
- * `agent docs`: surface the canonical AGENTS.md (agent spec 正本) to stdout or
+ * `agent docs`: surface the declared SKILL.md (agent spec 正本) to stdout or
  * a target path. The CLI never installs skills.
  */
 
 import { writeFileSync } from "node:fs";
-import { agentsDocContent, agentsDocPath } from "../core/agent-docs.js";
+import { runtimeSkillContent, runtimeSkillPath } from "../core/runtime-skill.js";
 
 export interface AgentDocsResult {
   source: string;
@@ -13,8 +13,8 @@ export interface AgentDocsResult {
 }
 
 export function agentDocsCommand(options: { out?: string }): AgentDocsResult {
-  const source = agentsDocPath();
-  const content = agentsDocContent();
+  const source = runtimeSkillPath();
+  const content = runtimeSkillContent();
   if (options.out) {
     writeFileSync(options.out, content, "utf8");
     return { source, target: options.out, bytes: Buffer.byteLength(content, "utf8") };

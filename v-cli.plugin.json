@@ -303,7 +303,7 @@
           "docs"
         ],
         "usage": "figma-to-uprefab agent docs [options]",
-        "description": "输出或导出随包 AGENTS.md，不安装技能。",
+        "description": "输出或导出随包 SKILL.md，不安装技能。",
         "arguments": [],
         "options": [
           {
@@ -313,7 +313,7 @@
         ],
         "output": {
           "format": "text",
-          "description": "返回 AGENTS.md 内容或文件路径。"
+          "description": "返回 SKILL.md 内容或文件路径。"
         },
         "exitCodes": {
           "0": "成功。",
@@ -470,5 +470,11 @@
         ]
       }
     ]
-  }
+  },
+  "skills": [
+    {
+      "id": "figma",
+      "path": "skills/figma/SKILL.md"
+    }
+  ]
 }

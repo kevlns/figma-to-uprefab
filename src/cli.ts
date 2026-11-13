@@ -11,7 +11,7 @@ import { CliError } from "./core/errors.js";
 import { Logger } from "./core/logger.js";
 import { collectUserConfigSecrets } from "./core/config.js";
 import { Redactor } from "./core/redact.js";
-import { agentsDocContent } from "./core/agent-docs.js";
+import { runtimeSkillContent } from "./core/runtime-skill.js";
 import { VERSION } from "./version.js";
 import {
   configInit,
@@ -179,17 +179,17 @@ export function buildProgram(): Command {
 
   program
     .command("agent")
-    .description("Agent documentation (AGENTS.md is the canonical agent spec).")
+    .description("Agent documentation (SKILL.md is the runtime spec).")
     .command("docs")
-    .description("Print or export the canonical AGENTS.md agent spec.")
+    .description("Print or export the declared SKILL.md agent spec.")
     .option("-o, --out <path>", "将文档写入文件。")
     .action((opts: { out?: string }) => {
       const result = agentDocsCommand({ out: opts.out });
-      if (emit({...result, content: agentsDocContent()})) return;
+      if (emit({...result, content: runtimeSkillContent()})) return;
       if (opts.out) {
         log(`Agent docs written to ${result.target} (${result.bytes} bytes).`);
       } else {
-        process.stdout.write(agentsDocContent());
+        process.stdout.write(runtimeSkillContent());
       }
     });
 

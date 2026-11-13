@@ -79,7 +79,7 @@ npm run test:package
 
 ## 文档
 
-[Agent 调用规范](AGENTS.md) · [文档规范](docs/documentation.md) · [Build request/report protocol](docs/build-protocol.md)
+[Agent 调用规范](skills/figma/SKILL.md) · [文档规范](docs/documentation.md) · [Build request/report protocol](docs/build-protocol.md)
 
 ## 许可与版权
 

@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Directory integrity: compute a recursive SHA-256 tree so install receipts
  * can detect any modification to the installed Unity package. Symlinks and

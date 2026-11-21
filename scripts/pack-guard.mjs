@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 // npm pack content guard for @kevlns/figma-to-uprefab.
 // Unlike packages that must NOT ship C#, this package SHIPS its C# Unity
 // payload (unity-package/), so the guard enforces the opposite for those:

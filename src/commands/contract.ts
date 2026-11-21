@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * `contract`: validate the canonical staging layout (root index + source
  * manifests + IR + overlays). Read-only; no Unity side effects.

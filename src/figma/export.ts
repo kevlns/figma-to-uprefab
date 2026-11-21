@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Export orchestration: Figma REST (or injected fixtures) -> canonical
  * `_Staging` layout with `Meta/<name>.source.json` per root.

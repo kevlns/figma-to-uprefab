@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Source manifest generation (port of the PowerShell Add-ManifestNodes +
  * Export-RootSourceManifest). Produces the canonical `Meta/<name>.source.json`

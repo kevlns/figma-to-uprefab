@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Deterministic layout + text extraction, ported from the PowerShell exporter.
  *

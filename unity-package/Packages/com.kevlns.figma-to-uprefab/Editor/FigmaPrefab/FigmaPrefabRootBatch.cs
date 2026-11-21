@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 using System;
 using System.Collections.Generic;
 using System.IO;

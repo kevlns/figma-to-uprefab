@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * `export <fileKey>`: Figma REST -> source manifests + node PNGs + root index.
  * No Unity side effects.

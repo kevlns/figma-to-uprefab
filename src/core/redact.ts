@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Token redaction: a Figma access token must never appear in logs, reports,
  * or exception text. `redactSecrets` masks every registered secret plus

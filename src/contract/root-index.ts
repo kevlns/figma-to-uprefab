@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /** Root index document (canonical _Staging/figma-roots.index.json). */
 
 export interface RootIndexEntry {

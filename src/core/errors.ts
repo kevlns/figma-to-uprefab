@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Stable, machine-readable error codes for @kevlns/figma-to-uprefab.
  *

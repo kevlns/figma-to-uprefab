@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Approximation overlay: an independent, schemaVersion'd document that lets
  * humans/agents adjust layout approximation decisions for specific Figma

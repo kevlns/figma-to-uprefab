@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Node-scoped PNG export, ported from the PowerShell exporter with batching.
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 // Package install smoke test: npm pack -> install into an isolated temp dir ->
 // verify the bin runs (`--version` / `--help`) and the package is installable.
 import { execFileSync } from "node:child_process";

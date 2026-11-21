@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * `doctor`: read-only diagnostics of config, staging, Unity install, editor,
  * and token presence (never prints the token).

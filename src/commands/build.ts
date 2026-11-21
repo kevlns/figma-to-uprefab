@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * `build`: orchestrate the C# converter via Unity batch mode.
  * Fail-closed on missing package install, missing receipt, or a running

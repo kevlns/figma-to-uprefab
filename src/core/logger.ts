@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /** Minimal leveled logger with a redaction hook so tokens never reach output. */
 
 export type LogLevel = "debug" | "info" | "warn" | "error";

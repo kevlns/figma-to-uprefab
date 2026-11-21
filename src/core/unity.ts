@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Unity detection + batch orchestration support.
  *   - resolve the Unity Editor executable (config editorPath or Hub discovery

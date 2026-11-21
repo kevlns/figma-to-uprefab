@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /** 运行规范只取本工具清单声明的 skill；开发 AGENTS 不参与执行。 */
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, resolve, relative, isAbsolute } from "node:path";

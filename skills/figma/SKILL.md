@@ -2,6 +2,8 @@
 name: figma
 description: "将 Figma 标记画板导出为源数据和图片，通过 Unity 转换器生成 UGUI 预制体。"
 ---
+<!-- Copyright © 2026 Vant <sl_kevln@163.com> -->
+
 
 # Figma 预制体
 

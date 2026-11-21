@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Figma REST transport with:
  *   - per-request timeout (AbortController)

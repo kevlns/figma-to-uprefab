@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Minimal structural types for the Figma REST payloads consumed by the
  * exporter. Only the fields the deterministic extraction needs are modeled.

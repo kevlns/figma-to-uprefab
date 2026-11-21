@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * JSON Schema is the authoritative contract. This module loads the schema
  * files shipped under schemas/ and validates documents, translating ajv

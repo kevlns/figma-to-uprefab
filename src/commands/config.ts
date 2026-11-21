@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * `config init | validate | migrate` against the single user-level config.
  */

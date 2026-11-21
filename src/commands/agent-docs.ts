@@ -1,3 +1,4 @@
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * `agent docs`: surface the declared SKILL.md (agent spec 正本) to stdout or
  * a target path. The CLI never installs skills.

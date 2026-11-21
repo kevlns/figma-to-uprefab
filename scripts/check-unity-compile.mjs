@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright © 2026 Vant <sl_kevln@163.com>
 /**
  * Compile-check the embedded Unity Editor C# payload against a real Unity
  * installation + Vant.Framework.dll. This is a verification gate (not used by

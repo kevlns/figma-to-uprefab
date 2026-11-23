@@ -84,6 +84,8 @@ function collectRefs(unityRoot, vantClient) {
   const engine = join(managed, "UnityEngine");
   for (const dll of [
     "UnityEngine.dll",
+    "UnityEditor.CoreModule.dll",
+    "UnityEngine.SpriteShapeModule.dll",
     "UnityEngine.CoreModule.dll",
     "UnityEngine.UIModule.dll",
     "UnityEngine.IMGUIModule.dll",
@@ -94,13 +96,15 @@ function collectRefs(unityRoot, vantClient) {
     const p = join(engine, dll);
     if (existsSync(p)) refs.push(p);
   }
-  refs.push(join(managed, "UnityEditor.dll"));
+  refs.push(join(unityRoot, "Editor", "Data", "NetStandard", "compat", "2.1.0", "shims", "netfx", "mscorlib.dll"));
+  for (const file of readdirSync(engine).filter(name => name.startsWith("UnityEditor.") && name.endsWith(".dll") && name !== "UnityEditor.CoreModule.dll")) refs.push(join(engine, file));
   refs.push(join(managed, "Newtonsoft.Json.dll"));
   const sa = join(vantClient, "Library", "ScriptAssemblies");
   refs.push(join(sa, "Unity.TextMeshPro.dll"));
   refs.push(join(sa, "UnityEngine.UI.dll"));
   refs.push(join(sa, "UnityEditor.UI.dll"));
   refs.push(join(sa, "Vant.Framework.dll"));
+  refs.push(join(sa, "Vant.Framework.Editor.dll"));
   const ns = join(unityRoot, "Editor", "Data", "NetStandard", "ref", "2.1.0");
   for (const f of ["netstandard.dll", "mscorlib.dll", "System.Runtime.dll", "System.Collections.dll", "System.IO.dll", "System.Text.RegularExpressions.dll", "System.Linq.dll"]) {
     const p = join(ns, f);
@@ -146,6 +150,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`[check-unity-compile] FAIL: ${err.message}`);
+  console.error(`[check-unity-compile] FAIL: ${err.stdout || err.message}`);
   process.exitCode = 1;
 });

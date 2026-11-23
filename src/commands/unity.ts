@@ -43,6 +43,10 @@ export function embeddedPackageDir(): string {
   throw new Error("UNI_PAYLOAD_MISSING: embedded UPM package not found. Reinstall @kevlns/figma-to-uprefab.");
 }
 
+export function installEmbeddedUnityPackage(projectPath: string, options: Pick<InstallOptions, "force" | "dryRun"> = {}) {
+  return installPackage({projectPath, sourceDir: embeddedPackageDir(), force: options.force, dryRun: options.dryRun});
+}
+
 export async function unityInstallCommand(options: {
   projectPath?: string;
   configPath?: string;
@@ -51,15 +55,7 @@ export async function unityInstallCommand(options: {
 }): Promise<{ status: string; projectPath: string; packageDir: string; fileCount: number; receiptPath?: string }> {
   const resolved = readConfig(options.projectPath, options.configPath);
   const projectPath = resolved.effective.projectPath;
-  const sourceDir = embeddedPackageDir();
-  const installOptions: InstallOptions = {
-    projectPath,
-    sourceDir,
-    force: options.force,
-    dryRun: options.dryRun,
-  };
-
-  const result = await installPackage(installOptions);
+  const result = await installEmbeddedUnityPackage(projectPath, options);
   return {
     status: result.status,
     projectPath: result.projectPath,

@@ -32,6 +32,15 @@ namespace Kevlns.Editor.FigmaToUprefab
 
         public static void Run()
         {
+            var args = Environment.GetCommandLineArgs();
+            int canvasIndex = Array.IndexOf(args, "-vantUiRequest");
+            if (canvasIndex >= 0 && canvasIndex + 1 < args.Length)
+            {
+                CheckLegacyLocation(out var cutoverCode, out var cutoverMessage);
+                if (cutoverCode != null) throw new InvalidOperationException(cutoverCode + ": " + cutoverMessage);
+                CanvasProjectionAdapter.Run(args[canvasIndex + 1]);
+                return;
+            }
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string workDir = Path.Combine(projectRoot, "Library", "figma-to-uprefab");
             string requestPath = Environment.GetEnvironmentVariable("FIGMA_TO_UPREFAB_REQUEST");
@@ -111,10 +120,11 @@ namespace Kevlns.Editor.FigmaToUprefab
             code = null;
             message = null;
             string legacyDir = Path.Combine(Application.dataPath, "Vant-Framework", "Editor", "FigmaPrefab");
-            if (Directory.Exists(legacyDir))
+            string adapter = Path.Combine(Application.dataPath, "Editor", "VantUiProduction", "VantUiProductionBatch.cs");
+            if (Directory.Exists(legacyDir) || File.Exists(adapter))
             {
                 code = "UNI_LEGACY_VANT_FIGMA_PREFAB";
-                message = "The old Assets/Vant-Framework/Editor/FigmaPrefab copy still exists. Remove or migrate it before using @kevlns/figma-to-uprefab so the embedded converter is the single implementation.";
+                message = "Complete the project cutover before building. Check Assets/Vant-Framework/Editor/FigmaPrefab and archive the managed Assets/Editor/VantUiProduction/VantUiProductionBatch.cs.";
             }
         }
 
@@ -262,6 +272,7 @@ namespace Kevlns.Editor.FigmaToUprefab
 
     public sealed class FigmaPrefabCliReport
     {
+        public string BuilderVersion => UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(FigmaPrefabBuilder).Assembly).version;
         [JsonProperty("schemaVersion")]
         public int SchemaVersion { get; set; } = 1;
 

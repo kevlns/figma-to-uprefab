@@ -9,17 +9,45 @@ namespace Kevlns.Editor.FigmaToUprefab
         [JsonProperty("prefab")]
         public FigmaPrefabInfo Prefab { get; set; }
 
+        [JsonProperty("atlases")]
+        public List<PrefabAtlas> Atlases { get; set; } = new List<PrefabAtlas>();
+
         [JsonProperty("assets")]
         public List<FigmaPrefabAsset> Assets { get; set; } = new List<FigmaPrefabAsset>();
 
+        [JsonProperty("schemaVersion")]
+        public int SchemaVersion { get; set; } = 1;
+
         [JsonProperty("tree")]
         public FigmaPrefabNode Tree { get; set; }
+    }
+
+    public sealed class PrefabAtlas
+    {
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("sprites")] public List<PrefabAtlasSprite> Sprites { get; set; }
+    }
+
+    public sealed class PrefabAtlasSprite
+    {
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("assetId")] public string AssetId { get; set; }
+    }
+
+    public sealed class BuiltPrefabAtlas
+    {
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("file")] public string File { get; set; }
+        [JsonProperty("sprites")] public string[] Sprites { get; set; }
     }
 
     public class FigmaPrefabInfo
     {
         [JsonProperty("name")]
         public string Name { get; set; }
+
+        [JsonProperty("createBase")]
+        public bool CreateBase { get; set; }
 
         [JsonProperty("variantFrom")]
         public string VariantFrom { get; set; }
@@ -116,6 +144,12 @@ namespace Kevlns.Editor.FigmaToUprefab
 
         [JsonProperty("references")]
         public List<FigmaPrefabReference> References { get; set; } = new List<FigmaPrefabReference>();
+
+        [JsonProperty("presentation")]
+        public PrefabNodePresentation Presentation { get; set; }
+
+        [JsonProperty("instanceOverrides")]
+        public List<FigmaPrefabNode> InstanceOverrides { get; set; }
 
         [JsonProperty("children")]
         public List<FigmaPrefabNode> Children { get; set; } = new List<FigmaPrefabNode>();

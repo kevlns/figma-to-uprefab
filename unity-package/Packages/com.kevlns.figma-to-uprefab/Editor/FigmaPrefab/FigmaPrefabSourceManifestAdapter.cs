@@ -25,6 +25,9 @@ namespace Kevlns.Editor.FigmaToUprefab
         [JsonProperty("nodes")]
         public List<FigmaPrefabSourceManifestNode> Nodes { get; set; } = new List<FigmaPrefabSourceManifestNode>();
 
+        [JsonProperty("atlases")]
+        public List<PrefabAtlas> Atlases { get; set; } = new List<PrefabAtlas>();
+
         [JsonProperty("assets")]
         public List<FigmaPrefabAsset> Assets { get; set; } = new List<FigmaPrefabAsset>();
     }
@@ -363,6 +366,7 @@ namespace Kevlns.Editor.FigmaToUprefab
                 return conversion;
             }
 
+            conversion.Ir.Atlases = manifest.Atlases ?? new List<PrefabAtlas>();
             conversion.Ir.Assets = manifest.Assets ?? new List<FigmaPrefabAsset>();
             ApplyLocalConfig(conversion, localConfig);
             BindNodeScopedAssets(conversion, manifestNodes);

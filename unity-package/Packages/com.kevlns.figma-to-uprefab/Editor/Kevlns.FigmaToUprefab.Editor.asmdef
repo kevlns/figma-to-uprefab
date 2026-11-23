@@ -3,6 +3,7 @@
     "rootNamespace": "Kevlns.Editor.FigmaToUprefab",
     "references": [
         "Vant.Framework",
+        "Vant.Framework.Editor",
         "Unity.TextMeshPro",
         "UnityEngine.UI",
         "UnityEditor.UI",

@@ -42,6 +42,7 @@ export interface SourceManifest {
   identifierTranslations: Record<string, string>;
   nodes: ManifestNode[];
   assets: ManifestAsset[];
+  atlases?: { name: string; sprites: { name: string; assetId: string }[] }[];
 }
 
 export interface BuildManifestOptions {

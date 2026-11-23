@@ -19,6 +19,7 @@ namespace Kevlns.Editor.FigmaToUprefab
 
     public class FigmaPrefabBuildReport
     {
+        public string BuilderVersion => UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(FigmaPrefabBuilder).Assembly).version;
         public string PrefabPath { get; set; }
         public string BasePrefabPath { get; set; }
         public bool Overwritten { get; set; }
@@ -31,6 +32,7 @@ namespace Kevlns.Editor.FigmaToUprefab
         public string SuggestedPromotionPrefabPath { get; set; }
         public string SuggestedPromotionSpriteFolder { get; set; }
         public List<string> AssetPaths { get; } = new List<string>();
+        public List<BuiltPrefabAtlas> Atlases { get; } = new List<BuiltPrefabAtlas>();
         public List<string> ItemPrefabPaths { get; } = new List<string>();
         public List<FigmaPrefabBuildIssue> Issues { get; } = new List<FigmaPrefabBuildIssue>();
 

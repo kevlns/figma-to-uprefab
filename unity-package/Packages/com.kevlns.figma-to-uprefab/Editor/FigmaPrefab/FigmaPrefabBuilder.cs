@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -89,6 +90,18 @@ namespace Kevlns.Editor.FigmaToUprefab
                 return emptyPathReport;
             }
 
+            string normalizedIrPath = irPath.Replace('\\', '/');
+            if (normalizedIrPath.IndexOf("/_Staging/", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                normalizedIrPath.IndexOf("/Meta/", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                var metadataReport = new FigmaPrefabBuildReport();
+                metadataReport.AddError(
+                    "STAGING_METADATA_OUTSIDE_META",
+                    "IR metadata must live under the root Meta directory.",
+                    irPath);
+                return metadataReport;
+            }
+
             try
             {
                 string json = File.ReadAllText(irPath);
@@ -109,6 +122,8 @@ namespace Kevlns.Editor.FigmaToUprefab
             var report = FigmaPrefabIrValidator.Validate(ir, options);
             ApplyReportPaths(ir, report);
             CollectAssetPaths(ir, report);
+            ValidateStagingAssets(ir, report);
+            ValidateAtlases(ir, report);
 
             if (report.HasErrors || options.DryRun)
             {
@@ -121,6 +136,18 @@ namespace Kevlns.Editor.FigmaToUprefab
             }
 
             var basePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(report.BasePrefabPath);
+            if (basePrefab == null && ir.Prefab.CreateBase)
+            {
+                if (Path.GetDirectoryName(report.BasePrefabPath) != Path.GetDirectoryName(report.PrefabPath) || Path.GetFileName(report.BasePrefabPath) != "Base.prefab")
+                {
+                    report.AddError("BASE_PATH_INVALID", "A generated Base.prefab must share the output directory.", "prefab.variantFrom");
+                    return report;
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(report.BasePrefabPath));
+                var template = new GameObject("Base", typeof(RectTransform));
+                try { basePrefab = PrefabUtility.SaveAsPrefabAsset(template, report.BasePrefabPath); }
+                finally { UnityEngine.Object.DestroyImmediate(template); }
+            }
             if (basePrefab == null)
             {
                 report.AddError("BASE_PREFAB_NOT_FOUND", $"Base prefab not found: {report.BasePrefabPath}.", "prefab.variantFrom");
@@ -138,6 +165,8 @@ namespace Kevlns.Editor.FigmaToUprefab
                 }
 
                 var spriteMap = ImportAssets(ir, report);
+                if (!report.HasErrors) BuildAtlases(ir, spriteMap, report);
+                if (report.HasErrors) return report;
                 BuildPrefabInstance(ir.Tree, instance, spriteMap, report, options);
                 if (report.HasErrors)
                 {
@@ -245,6 +274,109 @@ namespace Kevlns.Editor.FigmaToUprefab
             }
         }
 
+        private static void ValidateStagingAssets(FigmaPrefabIr ir, FigmaPrefabBuildReport report)
+        {
+            if (ir?.Assets == null)
+            {
+                return;
+            }
+
+            string stagingRoot = GetStagingRootDirectory(report.PrefabPath);
+            if (string.IsNullOrWhiteSpace(stagingRoot))
+            {
+                return;
+            }
+
+            string assetRoot = stagingRoot + "/Assets/";
+            for (int i = 0; i < ir.Assets.Count; i++)
+            {
+                string destPath = NormalizeAssetPath(ir.Assets[i]?.DestPath);
+                if (string.IsNullOrWhiteSpace(destPath) ||
+                    destPath.IndexOf("/_Staging/", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                if (!destPath.StartsWith(assetRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    report.AddError(
+                        "STAGING_ASSET_OUTSIDE_ASSETS",
+                        "Bitmap assets must live under the root Assets directory.",
+                        "assets[" + i + "].destPath");
+                }
+            }
+        }
+
+        private static string GetStagingRootDirectory(string prefabPath)
+        {
+            string normalized = NormalizeAssetPath(prefabPath);
+            const string marker = "/_Staging/";
+            int index = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                return null;
+            }
+
+            string after = normalized.Substring(index + marker.Length);
+            int slash = after.IndexOf('/');
+            string rootName = slash < 0 ? after.TrimEnd('/') : after.Substring(0, slash);
+            if (string.IsNullOrWhiteSpace(rootName))
+            {
+                return null;
+            }
+
+            return normalized.Substring(0, index) + marker + rootName;
+        }
+
+        private static void WarnStagingListPreviewUnsupported(FigmaPrefabNode node, FigmaPrefabBuildReport report)
+        {
+            if (node == null)
+            {
+                return;
+            }
+
+            if (TryGetDesignPreviewCount(node, out int count))
+            {
+                report.AddWarning(
+                    "STAGING_LIST_PREVIEW_UNSUPPORTED",
+                    "Design preview count " + count + " was not materialized. The structural prefab was still generated.",
+                    node.FigmaNodeId);
+            }
+
+            var children = node.Children;
+            if (children == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < children.Count; i++)
+            {
+                WarnStagingListPreviewUnsupported(children[i], report);
+            }
+        }
+
+        private static bool TryGetDesignPreviewCount(FigmaPrefabNode node, out int count)
+        {
+            count = 0;
+            if (node?.Components == null ||
+                !node.Components.TryGetValue("designPreviewCount", out var raw) ||
+                raw == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                count = Convert.ToInt32(raw);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            return count > 0;
+        }
+
         private static void BuildPrefabInstance(
             FigmaPrefabNode rootNode,
             GameObject rootObject,
@@ -252,6 +384,7 @@ namespace Kevlns.Editor.FigmaToUprefab
             FigmaPrefabBuildReport report,
             FigmaPrefabBuildOptions options)
         {
+            WarnStagingListPreviewUnsupported(rootNode, report);
             ClearChildren(rootObject.transform);
             var nodeMap = new Dictionary<FigmaPrefabNode, GameObject>();
             BuildNode(rootNode, rootObject.transform, rootObject, null, null, false, nodeMap, spriteMap, report);
@@ -297,6 +430,7 @@ namespace Kevlns.Editor.FigmaToUprefab
             ApplyAutoLayout(go, node);
             ApplyParentLayoutParticipation(go, node, parentNode, isSpecialLayoutManagedChild);
 
+            PrefabNodePresentation.Apply(node, go.transform, spriteMap);
             nodeMap[node] = go;
 
             var specialContent = PrepareSpecialContent(go, node, report);
@@ -753,6 +887,54 @@ namespace Kevlns.Editor.FigmaToUprefab
                 {
                     report.AddWarning("COMPONENT_TAG_UNSUPPORTED", $"Component tag is not supported in MVP: {component}.", node.Key);
                 }
+            }
+        }
+
+        private static bool IsAtlasName(string name)
+        {
+            return name != null && System.Text.RegularExpressions.Regex.IsMatch(name, @"\A[A-Za-z][A-Za-z0-9_-]{0,63}\z")
+                && !System.Text.RegularExpressions.Regex.IsMatch(name, @"\A(con|prn|aux|nul|com[1-9]|lpt[1-9])\z", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        private static void ValidateAtlases(FigmaPrefabIr ir, FigmaPrefabBuildReport report)
+        {
+            if (ir?.Atlases == null) return;
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            var assets = new HashSet<string>((ir.Assets ?? new List<FigmaPrefabAsset>()).Where(a => a != null).Select(a => a.Key));
+            foreach (var group in ir.Atlases)
+            {
+                if (!IsAtlasName(group?.Name) || !names.Add(group.Name) || group.Sprites == null || group.Sprites.Count == 0)
+                {
+                    report.AddError("ATLAS_INVALID", "Atlas requires a unique portable name and at least one sprite.", "atlases");
+                    continue;
+                }
+                var spriteNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in group.Sprites)
+                    if (!IsAtlasName(entry?.Name) || !spriteNames.Add(entry.Name) || !assets.Contains(entry.AssetId) || !used.Add(entry.AssetId))
+                        report.AddError("ATLAS_SPRITE_INVALID", "Missing or duplicate sprite asset: " + entry?.AssetId, group.Name);
+            }
+        }
+
+        private static void BuildAtlases(FigmaPrefabIr ir, Dictionary<string, Sprite> assets, FigmaPrefabBuildReport report)
+        {
+            if (ir.Atlases == null) return;
+            foreach (var group in ir.Atlases)
+            {
+                var sprites = new List<Sprite>();
+                foreach (var entry in group.Sprites)
+                {
+                    if (!assets.TryGetValue(entry.AssetId, out var sprite) || !sprite || sprite.name != entry.Name)
+                    {
+                        report.AddError("ATLAS_SPRITE_MISSING", "Expected imported sprite: " + entry.Name, entry.AssetId);
+                        return;
+                    }
+                    sprites.Add(sprite);
+                }
+                string relative = $"assets/Sprites/{group.Name}/{group.Name}.spriteatlasv2";
+                string path = Path.GetDirectoryName(report.PrefabPath).Replace('\\', '/') + "/" + relative;
+                Vant.Editor.UI.SpriteAtlasBuilder.Build(path, sprites.ToArray(), EditorUserBuildSettings.activeBuildTarget);
+                report.Atlases.Add(new BuiltPrefabAtlas { Name = group.Name, File = relative, Sprites = sprites.Select(sprite => sprite.name).ToArray() });
             }
         }
 

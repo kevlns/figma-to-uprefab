@@ -69,6 +69,6 @@ export { orchestrateBuild, writeBuildRequest, readBuildReport, writeResolvedConf
 export { doctorCommand } from "./commands/doctor.js";
 export { contractCommand } from "./commands/contract.js";
 export { exportCommand } from "./commands/export.js";
-export { unityInstallCommand, unityStatusCommand, unityUninstallCommand } from "./commands/unity.js";
+export { installEmbeddedUnityPackage, unityInstallCommand, unityStatusCommand, unityUninstallCommand } from "./commands/unity.js";
 export { buildCommand } from "./commands/build.js";
 export { runtimeSkillContent, runtimeSkillContent as agentsDocContent } from "./core/runtime-skill.js";

@@ -148,6 +148,8 @@ namespace Kevlns.Editor.FigmaToUprefab
             ValidateReferences(node, report, path);
             ValidateTextTags(node, report, path);
             ValidateCachedContainer(node, report, options, path);
+            if (HasComponent(node, ItemComponentTag) && !IsCachedContainer(parent))
+                report.AddError("ITEM_CONTAINER_MISSING", $"Item {node.Name} ({node.Key}) must belong to a list or grid.", path);
             ValidateConfiguredMappings(node, report, path);
             ValidateLayout(node, parent, report, path);
 
@@ -574,7 +576,7 @@ namespace Kevlns.Editor.FigmaToUprefab
             int itemCount = CountDirectItemChildren(node);
             if (itemCount == 0)
             {
-                AddContainerIssue("CACHED_CONTAINER_ITEM_MISSING", "Cached container has no direct item template.", path, report, options, false);
+                report.AddError("CACHED_CONTAINER_ITEM_MISSING", $"List/grid {node.Name} ({node.Key}) has no item template.", path);
                 return;
             }
 
@@ -587,7 +589,9 @@ namespace Kevlns.Editor.FigmaToUprefab
             var itemNode = FindDirectItemChild(node);
             if (itemNode != null && !HasComponent(itemNode, RcgComponentTag) && itemNode.Rcg == null)
             {
-                AddContainerIssue("CACHED_CONTAINER_ITEM_RCG_MISSING", "Cached container item template does not declare rcg.", path, report, options, true);
+                string message = $"Item {itemNode.Name} of {node.Name} ({node.Key}) does not declare rcg.";
+                if (options.StrictMode) report.AddError("CACHED_CONTAINER_ITEM_RCG_MISSING", message, path);
+                else report.AddWarning("CACHED_CONTAINER_ITEM_RCG_MISSING", message, path);
             }
         }
 
@@ -597,23 +601,6 @@ namespace Kevlns.Editor.FigmaToUprefab
             {
                 report.AddError("TEXT_TAG_CONFLICT", "Node cannot declare both text and uitext.", path + ".tags.components");
             }
-        }
-
-        private static void AddContainerIssue(
-            string code,
-            string message,
-            string path,
-            FigmaPrefabBuildReport report,
-            FigmaPrefabBuildOptions options,
-            bool strictOnly)
-        {
-            if (options.StrictMode && strictOnly)
-            {
-                report.AddError(code, message, path);
-                return;
-            }
-
-            report.AddWarning(code, message, path);
         }
 
         private static int CountDirectItemChildren(FigmaPrefabNode node)
@@ -627,7 +614,7 @@ namespace Kevlns.Editor.FigmaToUprefab
 
             for (int i = 0; i < children.Count; i++)
             {
-                if (HasComponent(children[i], ItemComponentTag))
+                if (IsExportedItem(children[i]))
                 {
                     count++;
                 }
@@ -636,7 +623,12 @@ namespace Kevlns.Editor.FigmaToUprefab
             return count;
         }
 
-        private static FigmaPrefabNode FindDirectItemChild(FigmaPrefabNode node)
+        private static bool IsExportedItem(FigmaPrefabNode node)
+        {
+            return HasComponent(node, ItemComponentTag) && !string.Equals(node.Tags.Node, NoteNodeType, StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static FigmaPrefabNode FindDirectItemChild(FigmaPrefabNode node)
         {
             var children = node.Children;
             if (children == null)
@@ -646,7 +638,7 @@ namespace Kevlns.Editor.FigmaToUprefab
 
             for (int i = 0; i < children.Count; i++)
             {
-                if (HasComponent(children[i], ItemComponentTag))
+                if (IsExportedItem(children[i]))
                 {
                     return children[i];
                 }

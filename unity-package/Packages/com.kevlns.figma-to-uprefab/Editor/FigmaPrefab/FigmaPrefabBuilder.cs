@@ -433,7 +433,7 @@ namespace Kevlns.Editor.FigmaToUprefab
             PrefabNodePresentation.Apply(node, go.transform, spriteMap);
             nodeMap[node] = go;
 
-            var specialContent = PrepareSpecialContent(go, node, report);
+            var specialContent = PrepareContainerContent(go, node, report);
             var children = node.Children;
             if (children != null)
             {
@@ -508,15 +508,12 @@ namespace Kevlns.Editor.FigmaToUprefab
             return null;
         }
 
-        private static Transform PrepareSpecialContent(GameObject go, FigmaPrefabNode node, FigmaPrefabBuildReport report)
+        private static Transform PrepareContainerContent(GameObject go, FigmaPrefabNode node, FigmaPrefabBuildReport report)
         {
-            if (string.IsNullOrWhiteSpace(GetSpecialPrefabPath(node)))
-            {
-                return null;
-            }
-
+            if (!IsCachedContainer(node)) return null;
+            bool special = !string.IsNullOrWhiteSpace(GetSpecialPrefabPath(node));
             var content = GetSpecialContent(go, node);
-            if (content == null)
+            if (special && content == null)
             {
                 report.AddError("SPECIAL_SCROLL_CONTENT_MISSING", "Special scroll prefab does not contain Viewport/Content.", node.Key);
                 return null;
@@ -525,18 +522,18 @@ namespace Kevlns.Editor.FigmaToUprefab
             var cachedContainer = GetCachedContainer(go, node);
             if (cachedContainer == null)
             {
-                report.AddError("SPECIAL_SCROLL_CONTAINER_MISSING", "Special scroll prefab does not contain the expected cached container component.", node.Key);
+                report.AddError("CACHED_CONTAINER_MISSING", $"Missing matching cached component on {node.Name} ({node.Key}).", node.Key);
                 return null;
             }
 
             if (cachedContainer.itemTemplate != null)
             {
-                Object.DestroyImmediate(cachedContainer.itemTemplate);
+                var original = cachedContainer.itemTemplate;
                 cachedContainer.itemTemplate = null;
+                if (original.transform.IsChildOf(go.transform) && original != go) Object.DestroyImmediate(original);
             }
 
-            ClearChildren(content);
-            cachedContainer.container = content;
+            if (content != null) ClearChildren(content);
             return content;
         }
 
@@ -777,6 +774,7 @@ namespace Kevlns.Editor.FigmaToUprefab
             if (HasComponent(node, RcgComponentTag) || node.Rcg != null)
             {
                 var rcg = GetOrAdd<ReferenceContainerGenerator>(go);
+                rcg.IsCellItem = HasComponent(node, ItemComponentTag);
                 if (!string.IsNullOrWhiteSpace(node.Rcg?.NamespaceName))
                 {
                     rcg.namespaceName = node.Rcg.NamespaceName;
@@ -1552,7 +1550,7 @@ namespace Kevlns.Editor.FigmaToUprefab
 
             cachedContainer.container = GetSpecialContent(go, node) ?? go.transform;
 
-            var itemNode = FindDirectItemChild(node);
+            var itemNode = FigmaPrefabIrValidator.FindDirectItemChild(node);
             if (itemNode == null)
             {
                 return;
@@ -1870,18 +1868,10 @@ namespace Kevlns.Editor.FigmaToUprefab
                 return;
             }
 
+            // Serialize inner templates first so an outer item never embeds them.
+            if (node.Children != null)
+                foreach (var child in node.Children) SaveItemPrefabs(child, report, nodeMap);
             SaveDirectItemPrefab(node, report, nodeMap);
-
-            var children = node.Children;
-            if (children == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                SaveItemPrefabs(children[i], report, nodeMap);
-            }
         }
 
         private static void SaveDirectItemPrefab(
@@ -1894,7 +1884,7 @@ namespace Kevlns.Editor.FigmaToUprefab
                 return;
             }
 
-            var itemNode = FindDirectItemChild(containerNode);
+            var itemNode = FigmaPrefabIrValidator.FindDirectItemChild(containerNode);
             if (itemNode == null)
             {
                 return;
@@ -1902,6 +1892,7 @@ namespace Kevlns.Editor.FigmaToUprefab
 
             if (!nodeMap.TryGetValue(itemNode, out var itemObject) || itemObject == null || AssetDatabase.Contains(itemObject))
             {
+                report.AddError("ITEM_INSTANCE_MISSING", $"Cannot extract item {itemNode.Name} for {containerNode.Name}.", itemNode.Key);
                 return;
             }
 
@@ -2081,31 +2072,13 @@ namespace Kevlns.Editor.FigmaToUprefab
                 return go.GetComponentInChildren<CachedGridComponent>(true);
             }
 
-            return go.GetComponent<CachedContainerBase>();
+            if (HasComponent(node, GridComponentTag)) return go.GetComponent<CachedGridComponent>();
+            return HasComponent(node, ListComponentTag) ? go.GetComponent<CachedListComponent>() : null;
         }
 
         private static bool IsNoteNode(FigmaPrefabNode node)
         {
             return string.Equals(node?.Tags?.Node, NoteNodeType, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static FigmaPrefabNode FindDirectItemChild(FigmaPrefabNode node)
-        {
-            var children = node?.Children;
-            if (children == null)
-            {
-                return null;
-            }
-
-            for (int i = 0; i < children.Count; i++)
-            {
-                if (HasComponent(children[i], ItemComponentTag))
-                {
-                    return children[i];
-                }
-            }
-
-            return null;
         }
 
         private static void ClearChildren(Transform transform)

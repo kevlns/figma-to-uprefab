@@ -8,7 +8,8 @@ import { atomicWriteFile } from "../src/core/atomic.js";
 import { normalizeProjectKey } from "../src/core/config.js";
 import { configInit } from "../src/commands/config.js";
 import { buildCommand } from "../src/commands/build.js";
-import { assertUnityPackageInstalled } from "../src/commands/unity.js";
+import { assertUnityPackageInstalled, installEmbeddedUnityPackage } from "../src/commands/unity.js";
+import { installPackage } from "../src/core/installer.js";
 
 describe("build request/report protocol", () => {
   it("writes and reads the request/report JSON", () => {
@@ -65,11 +66,18 @@ describe("build request/report protocol", () => {
     }
   });
 
-  it("fails closed when the package exists but the receipt is missing", async () => {
+  it("requires the Unity builder shipped with the CLI and its install receipt", async () => {
     const projectPath = mkdtempSync(join(tmpdir(), "ftu-proj-"));
     try {
       mkdirSync(join(projectPath, "Packages", "com.kevlns.figma-to-uprefab"), { recursive: true });
       await expect(assertUnityPackageInstalled(projectPath)).rejects.toThrow(/UNI_RECEIPT_MISSING/);
+      const prior = join(projectPath, "prior");
+      mkdirSync(prior);
+      writeFileSync(join(prior, "package.json"), JSON.stringify({ name: "com.kevlns.figma-to-uprefab", version: "0.2.0" }));
+      await installPackage({ projectPath, sourceDir: prior, force: true });
+      await expect(assertUnityPackageInstalled(projectPath)).rejects.toThrow(/UNI_PACKAGE_OUTDATED/);
+      await installEmbeddedUnityPackage(projectPath);
+      await assertUnityPackageInstalled(projectPath);
     } finally {
       rmSync(projectPath, { recursive: true, force: true });
     }

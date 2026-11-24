@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readConfig } from "../core/config.js";
 import { errors } from "../core/errors.js";
+import { compareTree, sha256Tree } from "../core/integrity.js";
 import {
   installPackage,
   installedPackageDir,
@@ -104,5 +105,9 @@ export async function assertUnityPackageInstalled(projectPath: string): Promise<
   if (!verified.installed || verified.modified) {
     const detail = verified.mismatches?.slice(0, 5).map((item) => `${item.kind}:${item.path}`).join(", ") ?? "unknown mismatch";
     throw new Error(`UNI_PACKAGE_MODIFIED: installed Unity package does not match its receipt (${detail}).`);
+  }
+  const differences = await compareTree(packageDir, await sha256Tree(embeddedPackageDir()));
+  if (differences.length) {
+    throw new Error("UNI_PACKAGE_OUTDATED: the project uses a different Unity builder. Run 'unity install' before building.");
   }
 }

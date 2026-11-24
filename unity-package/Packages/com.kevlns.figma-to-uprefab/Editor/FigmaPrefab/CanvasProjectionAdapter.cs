@@ -98,6 +98,12 @@ namespace Kevlns.Editor.FigmaToUprefab
                 if (c == "img") c = "image";
                 if (c == "image" && n["assetId"] != null) values["sprite"] = "asset:" + n.Value<string>("assetId");
                 if (c == "text" || c == "uitext") values["text"] = n.Value<string>("text") ?? "";
+                if (c == "list" || c == "slist")
+                {
+                    string direction = values.Value<string>("direction");
+                    if (direction != "h" && direction != "v") throw new Exception("列表 " + n.Value<string>("id") + " 的 direction 必须为 h 或 v");
+                    values["direction"] = direction == "h" ? "horizontal" : "vertical";
+                }
                 if (c == "grid" || c == "sgrid") { values["maxRows"] = values["rows"]; values["maxColumns"] = values["columns"]; values.Remove("rows"); values.Remove("columns"); }
                 config[c] = values;
             }
@@ -133,8 +139,12 @@ namespace Kevlns.Editor.FigmaToUprefab
                 if (!path.StartsWith("Assets/", StringComparison.Ordinal) || !path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
                     throw new Exception("目标 Unity 工程中找不到组件 Prefab：" + binding.Value<string>("path"));
                 node["configuredPrefabPath"] = path;
-                node["instanceOverrides"] = node["children"];
-                node["children"] = new JArray();
+                // Item assets belong to this build even when the container uses a prefab instance.
+                var children = node["children"].Children<JObject>().ToArray();
+                var templates = children.Where(child => child["tags"]["components"].Values<string>().Contains("item")).ToArray();
+                node["instanceOverrides"] = new JArray(children.Except(templates));
+                node["children"] = new JArray(templates);
+                foreach (JObject template in node["children"]) BindInstances(template);
                 return;
             }
             foreach (JObject child in node["children"]) BindInstances(child);

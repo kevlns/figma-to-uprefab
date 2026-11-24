@@ -43,4 +43,4 @@ export 和 contract 只操作或读取暂存目录；unity install/uninstall 修
 
 ## 许可与版权
 
-MIT。Copyright © 2026 Vant <sl_kevln@163.com>。Figma、Unity 及第三方组件适用各自许可。
+LGPLv3（含 Vant 应用开发例外）。Copyright © 2026 Vant <sl_kevln@163.com>。Figma、Unity 及第三方组件适用各自许可。

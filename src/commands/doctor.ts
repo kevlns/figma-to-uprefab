@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { readConfig, resolveTokenDetailed, userConfigPath } from "../core/config.js";
 import { installedPackageDir, status as packageStatus } from "../core/installer.js";
+import { embeddedPackageDir } from "./unity.js";
 import { projectVersionOf, resolveEditorPath, runningUnityProcesses } from "../core/unity.js";
 
 export interface DoctorReport {
@@ -94,7 +95,7 @@ export async function doctorCommand(options: { projectPath?: string; configPath?
 
   const packageDir = installedPackageDir(projectPath!);
   const pkgInstalled = existsSync(packageDir);
-  const pkg = pkgInstalled ? await packageStatus({ projectPath: projectPath! }) : undefined;
+  const pkg = pkgInstalled ? await packageStatus({ projectPath: projectPath!, sourceDir: embeddedPackageDir() }) : undefined;
   const running = runningUnityProcesses();
 
   const unity = {

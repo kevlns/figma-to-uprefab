@@ -6,11 +6,10 @@
  */
 
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readConfig } from "../core/config.js";
 import { errors } from "../core/errors.js";
-import { compareTree, sha256Tree } from "../core/integrity.js";
 import {
   installPackage,
   installedPackageDir,
@@ -48,14 +47,17 @@ export function installEmbeddedUnityPackage(projectPath: string, options: Pick<I
   return installPackage({projectPath, sourceDir: embeddedPackageDir(), force: options.force, dryRun: options.dryRun});
 }
 
+function unityProject(options: { projectPath?: string; configPath?: string }): string {
+  return options.projectPath ? resolve(options.projectPath) : readConfig(undefined, options.configPath).effective.projectPath;
+}
+
 export async function unityInstallCommand(options: {
   projectPath?: string;
   configPath?: string;
   force?: boolean;
   dryRun?: boolean;
 }): Promise<{ status: string; projectPath: string; packageDir: string; fileCount: number; receiptPath?: string }> {
-  const resolved = readConfig(options.projectPath, options.configPath);
-  const projectPath = resolved.effective.projectPath;
+  const projectPath = unityProject(options);
   const result = await installEmbeddedUnityPackage(projectPath, options);
   return {
     status: result.status,
@@ -70,9 +72,8 @@ export async function unityStatusCommand(options: {
   projectPath?: string;
   configPath?: string;
 }): Promise<StatusResult & { projectPath: string }> {
-  const resolved = readConfig(options.projectPath, options.configPath);
-  const projectPath = resolved.effective.projectPath;
-  const result = await packageStatus({ projectPath });
+  const projectPath = unityProject(options);
+  const result = await packageStatus({ projectPath, sourceDir: embeddedPackageDir() });
   return { ...result, projectPath };
 }
 
@@ -82,9 +83,8 @@ export async function unityUninstallCommand(options: {
   force?: boolean;
   dryRun?: boolean;
 }): Promise<{ status: string; projectPath: string; packageDir: string; receiptPath?: string }> {
-  const resolved = readConfig(options.projectPath, options.configPath);
-  const projectPath = resolved.effective.projectPath;
-  const result = await uninstallPackage({ projectPath, force: options.force, dryRun: options.dryRun });
+  const projectPath = unityProject(options);
+  const result = await uninstallPackage({ projectPath, sourceDir: embeddedPackageDir(), force: options.force, dryRun: options.dryRun });
   return {
     status: result.status,
     projectPath,
@@ -97,6 +97,11 @@ export async function unityUninstallCommand(options: {
 export async function assertUnityPackageInstalled(projectPath: string): Promise<void> {
   const packageDir = installedPackageDir(projectPath);
   if (!existsSync(packageDir)) throw errors.unityNotInstalled(projectPath);
+  try {
+    if ((await installEmbeddedUnityPackage(projectPath, { dryRun: true })).status === "AlreadyInstalled") return;
+  } catch (error) {
+    if (!(error instanceof Error && error.message.startsWith("UNI_MODIFIED:"))) throw error;
+  }
   const receiptPath = receiptPathFor(projectPath);
   if (!existsSync(receiptPath)) {
     throw new Error(`UNI_RECEIPT_MISSING: package exists but no install receipt at ${receiptPath}. Re-run 'unity install'.`);
@@ -106,8 +111,5 @@ export async function assertUnityPackageInstalled(projectPath: string): Promise<
     const detail = verified.mismatches?.slice(0, 5).map((item) => `${item.kind}:${item.path}`).join(", ") ?? "unknown mismatch";
     throw new Error(`UNI_PACKAGE_MODIFIED: installed Unity package does not match its receipt (${detail}).`);
   }
-  const differences = await compareTree(packageDir, await sha256Tree(embeddedPackageDir()));
-  if (differences.length) {
-    throw new Error("UNI_PACKAGE_OUTDATED: the project uses a different Unity builder. Run 'unity install' before building.");
-  }
+  throw new Error("UNI_PACKAGE_OUTDATED: the project uses a different Unity builder. Run 'unity install' before building.");
 }

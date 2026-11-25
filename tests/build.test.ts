@@ -66,7 +66,7 @@ describe("build request/report protocol", () => {
     }
   });
 
-  it("requires the Unity builder shipped with the CLI and its install receipt", async () => {
+  it("requires the Unity builder shipped with the CLI, including in a fresh checkout", async () => {
     const projectPath = mkdtempSync(join(tmpdir(), "ftu-proj-"));
     try {
       mkdirSync(join(projectPath, "Packages", "com.kevlns.figma-to-uprefab"), { recursive: true });
@@ -76,7 +76,8 @@ describe("build request/report protocol", () => {
       writeFileSync(join(prior, "package.json"), JSON.stringify({ name: "com.kevlns.figma-to-uprefab", version: "0.2.0" }));
       await installPackage({ projectPath, sourceDir: prior, force: true });
       await expect(assertUnityPackageInstalled(projectPath)).rejects.toThrow(/UNI_PACKAGE_OUTDATED/);
-      await installEmbeddedUnityPackage(projectPath);
+      const installed = await installEmbeddedUnityPackage(projectPath);
+      rmSync(installed.receiptPath!);
       await assertUnityPackageInstalled(projectPath);
     } finally {
       rmSync(projectPath, { recursive: true, force: true });

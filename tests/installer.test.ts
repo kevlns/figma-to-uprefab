@@ -60,6 +60,12 @@ describe("unity package installer", () => {
       await installPackage({ projectPath: project, sourceDir: source });
       const second = await installPackage({ projectPath: project, sourceDir: source });
       expect(second.status).toBe("AlreadyInstalled");
+      const receipt = second.receiptPath!;
+      rmSync(receipt);
+      expect((await installPackage({ projectPath: project, sourceDir: source, dryRun: true })).status).toBe("AlreadyInstalled");
+      expect(existsSync(receipt)).toBe(false);
+      await installPackage({ projectPath: project, sourceDir: source });
+      expect((await packageStatus({ projectPath: project })).modified).toBe(false);
     } finally {
       rmSync(source, { recursive: true, force: true });
       rmSync(project, { recursive: true, force: true });

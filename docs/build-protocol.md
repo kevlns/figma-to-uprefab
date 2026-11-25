@@ -43,7 +43,7 @@ uiSystem 使用 UGUI，其他值在 Node 和 C# 两侧均返回 CFG_UISYSTEM_UNS
 | 条件 | 错误码 |
 | --- | --- |
 | 转换器未安装 | UNI_NOT_INSTALLED |
-| 安装回执缺失 | UNI_RECEIPT_MISSING |
+| 工程中的构建器与 CLI 随包文件不一致，且缺少安装回执 | UNI_RECEIPT_MISSING |
 | 编辑器占用且未明确允许 | UNI_RUNNING |
 | 编辑器路径不可用 | UNI_EDITOR_NOT_FOUND |
 | 源数据或图片契约无效 | BLD_CONTRACT_INVALID |

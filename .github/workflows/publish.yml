@@ -22,6 +22,8 @@ jobs:
           package-manager-cache: false
       - name: Install dependencies
         run: npm ci
+      - name: Capture integrity of prior stable Unity payloads
+        run: python scripts/update-release-trees.py
       - name: Build, lint, test and package guard
         run: npm run check
       - name: Check whether version already exists

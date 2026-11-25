@@ -9,7 +9,8 @@ import {
   renameSync,
   rmSync,
 } from "node:fs";
-import { randomBytes } from "node:crypto";
+import releases from "./release-trees.json";
+import { createHash, randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { atomicWriteFile } from "./atomic.js";
 import { compareTree, sha256Tree, type TreeMismatch } from "./integrity.js";
@@ -70,15 +71,29 @@ function readReceipt(receiptPath: string): Receipt | undefined {
   if (!existsSync(receiptPath)) return undefined;
   try {
     const receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as Receipt;
-    return receipt.schemaVersion === 1 && receipt.packageName === PACKAGE_NAME ? receipt : undefined;
+    return receipt?.schemaVersion === 1 && receipt.packageName === PACKAGE_NAME &&
+      receipt.files && typeof receipt.files === "object" && !Array.isArray(receipt.files) ? receipt : undefined;
   } catch {
     return undefined;
   }
 }
 
-async function mismatchesFor(packageDir: string, receipt: Receipt | undefined): Promise<TreeMismatch[]> {
-  if (!receipt) return [{ kind: "extra", path: "(missing-or-invalid-receipt)" }];
-  return compareTree(packageDir, new Map(Object.entries(receipt.files)));
+const releasedTrees = new Set(Object.values(releases));
+async function isPublishedTree(packageDir: string): Promise<boolean> {
+  const entries = [...await sha256Tree(packageDir)].sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0);
+  return releasedTrees.has(createHash("sha256").update(JSON.stringify(entries)).digest("hex"));
+}
+
+async function mismatchesFor(packageDir: string, receipt: Receipt | undefined, sourceDir?: string): Promise<TreeMismatch[]> {
+  const prior = receipt ? await compareTree(packageDir, new Map(Object.entries(receipt.files))) : undefined;
+  if (prior?.length === 0) return prior;
+  if (!receipt && await isPublishedTree(packageDir)) return [];
+  if (sourceDir) {
+    readPayloadIdentity(sourceDir);
+    const current = await compareTree(packageDir, await sha256Tree(sourceDir));
+    if (current.length === 0 || !prior) return current;
+  }
+  return prior ?? [{ kind: "extra", path: "(missing-or-invalid-receipt)" }];
 }
 
 function assertOrdinaryDirectory(path: string, code: string): void {
@@ -100,14 +115,14 @@ function readPayloadIdentity(sourceDir: string): { version: string } {
   return { version: manifest.version };
 }
 
-export async function status(options: { projectPath: string; receiptDir?: string }): Promise<StatusResult> {
+export async function status(options: { projectPath: string; receiptDir?: string; sourceDir?: string }): Promise<StatusResult> {
   const packageDir = installedPackageDir(options.projectPath);
   const receiptPath = receiptPathFor(options.projectPath, options.receiptDir);
   if (!existsSync(packageDir)) return { installed: false, receiptPath, modified: false };
   if (lstatSync(packageDir).isSymbolicLink() || !lstatSync(packageDir).isDirectory()) {
     return { installed: true, packageDir, receiptPath, modified: true, mismatches: [{ kind: "extra", path: "(non-directory-or-symlink-package)" }] };
   }
-  const mismatches = await mismatchesFor(packageDir, readReceipt(receiptPath));
+  const mismatches = await mismatchesFor(packageDir, readReceipt(receiptPath), options.sourceDir);
   return { installed: true, packageDir, receiptPath, modified: mismatches.length > 0, fileCount: countFiles(packageDir), mismatches };
 }
 
@@ -121,24 +136,30 @@ export async function installPackage(options: InstallOptions): Promise<InstallRe
   const receiptPath = receiptPathFor(projectPath, options.receiptDir);
   const sourceHashes = await sha256Tree(sourceDir, options.readdirImpl);
   if (sourceHashes.size === 0) throw new Error("UNI_PAYLOAD_EMPTY: embedded Unity package has no files.");
+  const receipt: Receipt = {
+    schemaVersion: 1, packageName: PACKAGE_NAME, packageVersion: identity.version,
+    packageDir, files: Object.fromEntries(sourceHashes),
+  };
 
-  let existingUnmodified = false;
   if (existsSync(packageDir)) {
     if (lstatSync(packageDir).isSymbolicLink() || !lstatSync(packageDir).isDirectory()) {
       throw new Error(`UNI_PACKAGE_PATH_UNSAFE: installed package path is not an ordinary directory: ${packageDir}`);
     }
-    const receipt = readReceipt(receiptPath);
-    const mismatches = await mismatchesFor(packageDir, receipt);
-    existingUnmodified = mismatches.length === 0;
-    if (!existingUnmodified && !force) {
+    const previous = readReceipt(receiptPath);
+    const payloadDifferences = await compareTree(packageDir, sourceHashes);
+    if (payloadDifferences.length === 0) {
+      if (!dryRun && (!previous || previous.packageVersion !== identity.version || previous.packageDir !== packageDir ||
+          Object.keys(previous.files).length !== sourceHashes.size ||
+          [...sourceHashes].some(([path, hash]) => previous.files[path] !== hash))) {
+        mkdirSync(receiptDir, { recursive: true });
+        atomicWriteFile(receiptPath, JSON.stringify(receipt, null, 2));
+      }
+      return { status: "AlreadyInstalled", projectPath, packageName: PACKAGE_NAME, packageDir, fileCount: sourceHashes.size, receiptPath };
+    }
+    const mismatches = previous ? await mismatchesFor(packageDir, previous) : await isPublishedTree(packageDir) ? [] : payloadDifferences;
+    if (mismatches.length && !force) {
       const detail = mismatches.slice(0, 5).map((m) => `${m.kind}:${m.path}`).join(", ");
       throw new Error(`UNI_MODIFIED: installed package was modified since install (${detail}). Use --force to replace.`);
-    }
-    if (existingUnmodified) {
-      const installedVsPayload = await compareTree(packageDir, sourceHashes);
-      if (installedVsPayload.length === 0) {
-        return { status: "AlreadyInstalled", projectPath, packageName: PACKAGE_NAME, packageDir, fileCount: sourceHashes.size, receiptPath };
-      }
     }
   }
 
@@ -164,13 +185,6 @@ export async function installPackage(options: InstallOptions): Promise<InstallRe
     renameSync(stagingDir, packageDir);
     newInstalled = true;
     mkdirSync(receiptDir, { recursive: true });
-    const receipt: Receipt = {
-      schemaVersion: 1,
-      packageName: PACKAGE_NAME,
-      packageVersion: identity.version,
-      packageDir,
-      files: Object.fromEntries(sourceHashes),
-    };
     atomicWriteFile(receiptPath, JSON.stringify(receipt, null, 2));
     if (oldMoved) rmSync(backupDir, { recursive: true, force: true });
     return { status: "Installed", projectPath, packageName: PACKAGE_NAME, packageDir, fileCount: sourceHashes.size, receiptPath };
@@ -185,14 +199,14 @@ export async function installPackage(options: InstallOptions): Promise<InstallRe
   }
 }
 
-export async function uninstallPackage(options: { projectPath: string; dryRun?: boolean; force?: boolean; receiptDir?: string }): Promise<UninstallResult> {
+export async function uninstallPackage(options: { projectPath: string; dryRun?: boolean; force?: boolean; receiptDir?: string; sourceDir?: string }): Promise<UninstallResult> {
   const packageDir = installedPackageDir(options.projectPath);
   const receiptPath = receiptPathFor(options.projectPath, options.receiptDir);
   if (!existsSync(packageDir)) return { status: "NotInstalled", projectPath: options.projectPath, packageDir, receiptPath };
   if (lstatSync(packageDir).isSymbolicLink() || !lstatSync(packageDir).isDirectory()) {
     if (!options.force) return { status: "ModifiedRejected", projectPath: options.projectPath, packageDir, receiptPath };
   } else {
-    const mismatches = await mismatchesFor(packageDir, readReceipt(receiptPath));
+    const mismatches = await mismatchesFor(packageDir, readReceipt(receiptPath), options.sourceDir);
     if (mismatches.length > 0 && !options.force) return { status: "ModifiedRejected", projectPath: options.projectPath, packageDir, receiptPath };
   }
   if (options.dryRun) return { status: "DryRun", projectPath: options.projectPath, packageDir, receiptPath };

@@ -21,6 +21,8 @@ Node 不执行源数据到 IR 的转换。近似配置为 schemaVersion 1，以�
 
 export 和 contract 只操作或读取暂存目录；unity install/uninstall 修改工程内的转换器包。config init 写入用户配置。安装支持预演、哈希回执、改动检测、原子替换与回滚；回执位于 Library/figma-to-uprefab/install-receipt.json。构建所需路径必须在工具规定的工程范围内，路径越界返回 PAT_TRAVERSAL。
 
+新检出的工程可以直接核对构建器。项目文件与当前发布物逐文件一致时即可构建，显式执行 unity install 可补写本机回执。传入 --project 的包管理命令只依赖指定工程。发现真实内容差异时先核对原修改与目标版本。
+
 ### 配置与凭据
 
 配置为 ~/.config/figma-to-uprefab/config.json，可通过 FIGMA_TO_UPREFAB_CONFIG 指定。projects 以规范化工程绝对路径为键。FIGMA_ACCESS_TOKEN 优先于配置中的 figmaAccessToken；凭据不进入版本库、source、IR、PNG、报告或 resolved-config.json，日志必须脱敏。uiSystem 使用 UGUI，其他值返回 CFG_UISYSTEM_UNSUPPORTED。
